@@ -83,6 +83,4 @@ class ImportMappingsTask extends DefaultTask {
             item.name.contains("omero-model")
         }
     }
-
-
 }

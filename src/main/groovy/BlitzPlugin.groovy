@@ -62,7 +62,7 @@ class BlitzPlugin implements Plugin<Project> {
             ve.loggerClassName = project.getLogger().getClass().getName()
 
             project.afterEvaluate {
-                def task = project.tasks.create('processCombine', DslTask) {
+                project.tasks.create('dslCombine', DslTask) {
                     group = GROUP
                     description = "Processes the combined.vm"
                     profile = "psql"
@@ -81,22 +81,17 @@ class BlitzPlugin implements Plugin<Project> {
         project.blitz.api.all { SplitExtension split ->
             def taskName = "split${split.name.capitalize()}"
 
-            // Create task and assign group name
-            def task = project.tasks.create(taskName, SplitTask) {
-                group = GROUP
-                description = "Splits ${split.language} from .combined files"
-            }
-
             // Assign property values to task inputs
             project.afterEvaluate {
-                task.combined = project.fileTree(dir: blitzExt.combinedDir, include: '**/*.combined')
-                task.language = split.language
-                task.outputDir = split.outputDir
-            }
-
-            if (project.plugins.hasPlugin(JavaPlugin)) {
-                // Ensure the dsltask runs before compileJava
-                project.tasks.getByName("compileJava").dependsOn(taskName)
+                // Create task and assign group name
+                project.tasks.create(taskName, SplitTask) {
+                    group = GROUP
+                    description = "Splits ${split.language} from .combined files"
+                    combined = project.fileTree(dir: blitzExt.combinedDir, include: '**/*.combined')
+                    language = split.language
+                    outputDir = split.outputDir
+                    dependsOn project.tasks.getByName("dslCombine")
+                }
             }
         }
     }
