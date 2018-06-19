@@ -86,8 +86,6 @@ class BlitzPlugin implements Plugin<Project> {
             SplitTask task = project.tasks.create(taskName, SplitTask) {
                 group = GROUP
                 description = "Splits ${split.language} from .combined files"
-                // dependsOn project.tasks.getByName("dslCombine")
-                // dependsOn project.tasks.getByName("dslCombine")
             }
 
             project.afterEvaluate {
@@ -100,20 +98,17 @@ class BlitzPlugin implements Plugin<Project> {
 
     def loadCombineFile(Project project) {
         final def fileLocation = "templates/combined.vm"
-        final def classLoader = getClass().getClassLoader()
-        def fileUrl = classLoader.getResource(fileLocation)
-        if (!fileUrl) {
-            // Grab file from plugin
+        final def outPutDir = "${project.buildDir}/resources/${fileLocation}"
+
+        // Check if combined file exists
+        def result = new File(outPutDir)
+        if (!result.exists()) {
+            def classLoader = getClass().getClassLoader()
             def inputStream = classLoader.getResourceAsStream(fileLocation)
-            def outPutDir = "${project.buildDir}/resources/${fileLocation}"
-
             // Copy it to the projects build directory
-            FileUtils.copyInputStreamToFile(inputStream, new File(outPutDir))
-
-            // Load the file
-            fileUrl = classLoader.getResource(fileLocation)
+            FileUtils.copyInputStreamToFile(inputStream, result)
         }
-        return new File(fileUrl.getFile())
+        return result
     }
 
 
