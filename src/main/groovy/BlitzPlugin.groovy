@@ -1,6 +1,7 @@
+import org.apache.commons.io.FileUtils
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.plugins.JavaPlugin
+
 
 class BlitzPlugin implements Plugin<Project> {
 
@@ -61,44 +62,60 @@ class BlitzPlugin implements Plugin<Project> {
             VelocityExtension ve = project.dsl.velocity
             ve.loggerClassName = project.getLogger().getClass().getName()
 
+            DslTask task = project.tasks.create("dslCombine", DslTask) {
+                group = GROUP
+                description = "Processes the combined.vm"
+                dependsOn project.tasks.getByName("importMappings")
+            }
+
             project.afterEvaluate {
-                project.tasks.create('dslCombine', DslTask) {
-                    group = GROUP
-                    description = "Processes the combined.vm"
-                    profile = "psql"
-                    velocityProperties = ve.data.get()
-                    template = new File("src/main/resources/templates/combined.vm")
-                    omeXmlFiles = blitzExt.omeXmlFiles
-                    outputPath = blitzExt.combinedDir
-                    formatOutput = { st -> "${st.getShortname()}I.combined" }
-                    dependsOn 'importMappings'
-                }
+                task.profile = "psql"
+                task.template = loadCombineFile(project)
+                task.velocityProperties = ve.data.get()
+                task.omeXmlFiles = blitzExt.omeXmlFiles
+                task.outputPath = blitzExt.combinedDir
+                task.formatOutput = { st -> "${st.getShortname()}I.combined" }
             }
         }
     }
 
     def configureSplitTasks(Project project) {
         project.blitz.api.all { SplitExtension split ->
-            def taskName = "split${split.name.capitalize()}"
+            String taskName = "split${split.name.capitalize()}"
 
-            // Assign property values to task inputs
+            SplitTask task = project.tasks.create(taskName, SplitTask) {
+                group = GROUP
+                description = "Splits ${split.language} from .combined files"
+                // dependsOn project.tasks.getByName("dslCombine")
+                // dependsOn project.tasks.getByName("dslCombine")
+            }
+
             project.afterEvaluate {
-                // Create task and assign group name
-                project.tasks.create(taskName, SplitTask) {
-                    group = GROUP
-                    description = "Splits ${split.language} from .combined files"
-                    combined = project.fileTree(dir: blitzExt.combinedDir, include: '**/*.combined')
-                    language = split.language
-                    outputDir = split.outputDir
-                    dependsOn project.tasks.getByName("dslCombine")
-                }
+                task.combined = project.fileTree(dir: blitzExt.combinedDir, include: '**/*.combined')
+                task.language = split.language
+                task.outputDir = split.outputDir
             }
         }
     }
 
-    def loadCombineFile() {
-        def classLoader = this.getClass().getClassLoader()
-        return new File(classLoader.getResource("templates/combined.vm").getFile())
+    def loadCombineFile(Project project) {
+        final def fileLocation = "templates/combined.vm"
+        final def classLoader = getClass().getClassLoader()
+        def fileUrl = classLoader.getResource(fileLocation)
+        if (!fileUrl) {
+            // Grab file from plugin
+            def inputStream = classLoader.getResourceAsStream(fileLocation)
+            def outPutDir = "${project.buildDir}/resources/${fileLocation}"
+
+            // Copy it to the projects build directory
+            FileUtils.copyInputStreamToFile(inputStream, new File(outPutDir))
+
+            // Load the file
+            fileUrl = classLoader.getResource(fileLocation)
+        }
+        return new File(fileUrl.getFile())
     }
+
+
 }
 
