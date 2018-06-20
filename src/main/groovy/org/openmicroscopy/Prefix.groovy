@@ -1,3 +1,4 @@
+package org.openmicroscopy
 /**
  * File extension each prefix in .combined corresponds to
  */

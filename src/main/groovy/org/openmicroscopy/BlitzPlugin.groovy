@@ -1,7 +1,8 @@
+package org.openmicroscopy
+
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-
 
 class BlitzPlugin implements Plugin<Project> {
 
@@ -21,7 +22,6 @@ class BlitzPlugin implements Plugin<Project> {
         configureCombineTask(project)
         configureSplitTasks(project)
     }
-
 
     def setupBlitzExtension(Project project) {
         // Add the 'blitz' extension object
@@ -43,14 +43,6 @@ class BlitzPlugin implements Plugin<Project> {
             description 'Extracts mapping files from omero-model.jar'
         }
 
-//        final def config = project.configurations.create("omeXmlFiles")
-//                .setVisible(false)
-//                .setDescription("The data artifacts to be processed for this plugin.");
-//
-//        config.defaultDependencies { DependencySet dependencies ->
-//            dependencies.add project.dependencies.create("org.openmicroscopy:omero-model:1.0-SNAPSHOT")
-//        }
-
         project.afterEvaluate {
             task.extractDir = blitzExt.omeXmlDir
         }
@@ -62,7 +54,7 @@ class BlitzPlugin implements Plugin<Project> {
             VelocityExtension ve = project.dsl.velocity
             ve.loggerClassName = project.getLogger().getClass().getName()
 
-            DslTask task = project.tasks.create("dslCombine", DslTask) {
+            def task = project.tasks.create("dslCombine", DslTask) {
                 group = GROUP
                 description = "Processes the combined.vm"
                 dependsOn project.tasks.getByName("importMappings")
@@ -83,7 +75,7 @@ class BlitzPlugin implements Plugin<Project> {
         project.blitz.api.all { SplitExtension split ->
             String taskName = "split${split.name.capitalize()}"
 
-            SplitTask task = project.tasks.create(taskName, SplitTask) {
+            def task = project.tasks.create(taskName, SplitTask) {
                 group = GROUP
                 description = "Splits ${split.language} from .combined files"
             }

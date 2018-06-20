@@ -1,3 +1,5 @@
+package org.openmicroscopy
+
 class SplitExtension {
     final String name
     Language language

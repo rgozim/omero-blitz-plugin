@@ -1,3 +1,5 @@
+package org.openmicroscopy
+
 import org.apache.commons.io.FilenameUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException

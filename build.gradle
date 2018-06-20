@@ -11,7 +11,7 @@ gradlePlugin {
     plugins {
         BlitzPlugin {
             id = 'org.openmicroscopy.blitzplugin'
-            implementationClass = 'BlitzPlugin'
+            implementationClass = 'org.openmicroscopy.BlitzPlugin'
         }
     }
 }

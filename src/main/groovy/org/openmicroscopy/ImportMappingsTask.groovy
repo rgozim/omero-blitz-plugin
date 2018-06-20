@@ -1,3 +1,5 @@
+package org.openmicroscopy
+
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.artifacts.DependencySet
@@ -12,7 +14,7 @@ import org.gradle.api.tasks.TaskAction
  * Example usage:
  * <pre>
  * {@code
- * task importMappings(type: ImportMappingsTask)
+ * task importMappings(type: org.openmicroscopy.ImportMappingsTask)
  *}
  * </pre>
  */

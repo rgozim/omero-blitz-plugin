@@ -1,3 +1,5 @@
+package org.openmicroscopy
+
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
 
