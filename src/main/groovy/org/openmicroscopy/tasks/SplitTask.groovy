@@ -1,4 +1,4 @@
-package org.openmicroscopy
+package org.openmicroscopy.tasks
 
 import org.apache.commons.io.FilenameUtils
 import org.gradle.api.DefaultTask
@@ -9,11 +9,12 @@ import org.gradle.api.internal.file.copy.RegExpNameMapper
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
-import org.gradle.api.tasks.OutputFiles
+import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
-import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.TaskAction
+import org.openmicroscopy.Language
+import org.openmicroscopy.Prefix
 
 import java.util.regex.Pattern
 
@@ -28,13 +29,12 @@ class SplitTask extends DefaultTask {
     /**
      * Directory to spit out source files
      */
-    @OutputFiles
+    @OutputDirectory
     File outputDir
 
     /**
      * Collection of .combined files to process
      */
-    @SkipWhenEmpty
     @InputFiles
     @PathSensitive(PathSensitivity.NONE)
     FileCollection combined
@@ -65,7 +65,11 @@ class SplitTask extends DefaultTask {
      * @param combinedFiles
      */
     def combined(FileCollection combinedFiles) {
-        this.combined = this.combinedFiles + combinedFiles
+        if (this.combined) {
+            this.combined = this.combinedFiles + combinedFiles
+        } else {
+            this.combined = combinedFiles
+        }
     }
 
     def rename(Pattern sourceRegEx, String replaceWith) {

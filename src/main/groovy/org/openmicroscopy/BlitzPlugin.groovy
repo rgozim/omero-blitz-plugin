@@ -1,8 +1,14 @@
 package org.openmicroscopy
 
+import extensions.VelocityExtension
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.openmicroscopy.extensions.BlitzExtension
+import org.openmicroscopy.extensions.SplitExtension
+import org.openmicroscopy.tasks.ImportMappingsTask
+import org.openmicroscopy.tasks.SplitTask
+import tasks.DslMultiFileTask
 
 class BlitzPlugin implements Plugin<Project> {
 
@@ -10,7 +16,7 @@ class BlitzPlugin implements Plugin<Project> {
      * Sets the group name for the DSLPlugin tasks to reside in.
      * i.e. In a terminal, call `./gradlew tasks` to list tasks in their groups in a terminal
      */
-    static final def GROUP = 'omero'
+    static final def GROUP = "omero-blitz"
 
     BlitzExtension blitzExt
 
@@ -27,63 +33,66 @@ class BlitzPlugin implements Plugin<Project> {
         // Add the 'blitz' extension object
         blitzExt = project.extensions.create('blitz', BlitzExtension, project)
 
-        // Default config for blitz
-        blitzExt.omeXmlFiles =
-                project.files(dir: blitzExt.omeXmlDir, include: '**/*.ome.xml')
-        blitzExt.combinedDir =
-                project.file("${project.buildDir}/combined")
-
         // Add container for blitz
-        blitzExt.extensions.add('api', project.container(SplitExtension))
+        blitzExt.extensions.add('api', project.container(SplitExtension, {
+            String name -> new SplitExtension(name, project)
+        }))
     }
 
+    /**
+     * Creates task to extract .ome.xml files from omero-model
+     * and place them in {@code omeXmlDir}
+     * @param project
+     * @return
+     */
     def configureImportMappingsTask(Project project) {
-        def task = project.task('importMappings', type: ImportMappingsTask) {
-            group GROUP
-            description 'Extracts mapping files from omero-model.jar'
-        }
-
         project.afterEvaluate {
-            task.extractDir = blitzExt.omeXmlDir
+            project.tasks.create('importOmeXmlFiles', ImportMappingsTask) {
+                group GROUP
+                description 'Extracts mapping files from omero-model.jar'
+                extractDir "${project.buildDir}/${BlitzExtension.OME_XML_FILES_DIR}"
+            }
         }
     }
 
+    /**
+     * Creates task to process combined.vm template and spit out .combined
+     * files for generating sources.
+     * @param project
+     * @return
+     */
     def configureCombineTask(Project project) {
         project.afterEvaluate {
             // Config for velocity
             VelocityExtension ve = project.dsl.velocity
             ve.loggerClassName = project.getLogger().getClass().getName()
 
-            def task = project.tasks.create("dslCombine", DslTask) {
+            project.tasks.create("generateCombinedFiles", DslMultiFileTask) {
+                dependsOn project.tasks.getByName("importOmeXmlFiles")
                 group = GROUP
-                description = "Processes the combined.vm"
-                dependsOn project.tasks.getByName("importMappings")
-            }
-
-            project.afterEvaluate {
-                task.profile = "psql"
-                task.template = loadCombineFile(project)
-                task.velocityProperties = ve.data.get()
-                task.omeXmlFiles = blitzExt.omeXmlFiles
-                task.outputPath = blitzExt.combinedDir
-                task.formatOutput = { st -> "${st.getShortname()}I.combined" }
+                description = "Processes combined.vm and generates .combined files"
+                profile = "psql"
+                template = loadCombineFile(project)
+                velocityProperties = ve.data.get()
+                omeXmlFiles = blitzExt.omeXmlFiles
+                outputPath = blitzExt.combinedDir
+                formatOutput = { st -> "${st.getShortname()}I.combined" }
             }
         }
     }
 
     def configureSplitTasks(Project project) {
-        project.blitz.api.all { SplitExtension split ->
-            String taskName = "split${split.name.capitalize()}"
-
-            def task = project.tasks.create(taskName, SplitTask) {
-                group = GROUP
-                description = "Splits ${split.language} from .combined files"
-            }
-
-            project.afterEvaluate {
-                task.combined = project.fileTree(dir: blitzExt.combinedDir, include: '**/*.combined')
-                task.language = split.language
-                task.outputDir = split.outputDir
+        project.afterEvaluate {
+            project.blitz.api.all { SplitExtension split ->
+                String taskName = "split${split.name.capitalize()}"
+                project.tasks.create(taskName, SplitTask) {
+                    dependsOn project.tasks.getByName("generateCombinedFiles")
+                    group = GROUP
+                    description = "Splits ${split.language} from .combined files"
+                    combined = project.fileTree(dir: blitzExt.combinedDir, include: '**/*.combined')
+                    language = split.language
+                    outputDir = split.outputDir
+                }
             }
         }
     }

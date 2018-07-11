@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'org.openmicroscopy'
-version '1.0'
+version '0.1.0'
 
 gradlePlugin {
     plugins {
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.openmicroscopy:dslplugin:1.0'
+    compile 'org.openmicroscopy:dslplugin:0.1.0'
 }
 
 task sourceJar(type: Jar, dependsOn: classes) {
