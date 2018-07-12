@@ -1,18 +1,30 @@
 package org.openmicroscopy.extensions
 
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.openmicroscopy.Language
 
+import java.util.regex.Pattern
+
 class SplitExtension {
     final String name
+
     final Project project
 
     Language language
+
     File outputDir
+
     File combinedDir
 
+    String outputName
+
     void setLanguage(String language) {
-        this.language = Language.valueOf(language.trim().toUpperCase())
+        Language lang = Language.find(language)
+        if (lang == null) {
+            throw new GradleException("Unsupported language: ${language}")
+        }
+        this.language = lang
     }
 
     void setOutputDir(Object dir) {
@@ -27,8 +39,8 @@ class SplitExtension {
         setLanguage(language)
     }
 
-    void language(Language language) {
-        this.language = language
+    void language(Language lang) {
+        this.language = lang
     }
 
     void outputDir(Object dir) {
@@ -37,6 +49,24 @@ class SplitExtension {
 
     void combinedDir(Object dir) {
         setCombinedDir(dir)
+    }
+
+    def rename(Pattern sourceRegEx, String replaceWith) {
+        this.nameTransformer = new Tuple(
+                sourceRegEx,
+                replaceWith
+        )
+    }
+
+    def rename(String sourceRegEx, String replaceWith) {
+        this.nameTransformer = new Tuple(
+                sourceRegEx,
+                replaceWith
+        )
+    }
+
+    def outputName(String name) {
+        this.outputName = name
     }
 
     SplitExtension(String name, Project project) {

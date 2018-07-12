@@ -22,5 +22,9 @@ enum Language {
         this.prefixes = prefixes
     }
 
-    Prefix[] prefixes
+    Prefix[] getPrefixes() {
+        return Arrays.copyOf(prefixes, prefixes.size());
+    }
+
+    private final Prefix[] prefixes
 }

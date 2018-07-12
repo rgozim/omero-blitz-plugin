@@ -1,6 +1,5 @@
 package org.openmicroscopy.tasks
 
-import org.apache.commons.io.FilenameUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Transformer
@@ -24,7 +23,7 @@ class SplitTask extends DefaultTask {
      * List of the languages we want to split from .combined files
      */
     @Input
-    String language
+    Language language
 
     /**
      * Directory to spit out source files
@@ -42,12 +41,28 @@ class SplitTask extends DefaultTask {
     @Optional
     Transformer<String, String> nameTransformer
 
+    void setLanguage(String language) {
+        Language lang = Language.find(language)
+        if (lang == null) {
+            throw new GradleException("Unsupported language : ${language}")
+        }
+        this.language = lang
+    }
+
+    void language(String language) {
+        setLanguage(language)
+    }
+
+    void language(Language lang) {
+        this.language = lang
+    }
+
     /**
      * Directory to spit out source files
      * @param dir
      * @return
      */
-    def outputDir(File dir) {
+    void outputDir(File dir) {
         this.outputDir = dir
     }
 
@@ -56,7 +71,7 @@ class SplitTask extends DefaultTask {
      * @param dir
      * @return
      */
-    def outputDir(String dir) {
+    void outputDir(String dir) {
         this.outputDir = new File(dir)
     }
 
@@ -64,7 +79,7 @@ class SplitTask extends DefaultTask {
      * Custom set method for concatenating FileCollections
      * @param combinedFiles
      */
-    def combined(FileCollection combinedFiles) {
+    void combined(FileCollection combinedFiles) {
         if (this.combined) {
             this.combined = this.combinedFiles + combinedFiles
         } else {
@@ -72,18 +87,22 @@ class SplitTask extends DefaultTask {
         }
     }
 
-    def rename(Pattern sourceRegEx, String replaceWith) {
+    void rename(Pattern sourceRegEx, String replaceWith) {
         this.nameTransformer = new RegExpNameMapper(
                 sourceRegEx,
-                FilenameUtils.removeExtension(replaceWith)
+                replaceWith
         )
     }
 
-    def rename(String sourceRegEx, String replaceWith) {
+    void rename(String sourceRegEx, String replaceWith) {
         this.nameTransformer = new RegExpNameMapper(
                 sourceRegEx,
-                FilenameUtils.removeExtension(replaceWith)
+                replaceWith
         )
+    }
+
+    void rename(String replaceWith) {
+        rename("(.*?)I[.]combined", replaceWith)
     }
 
     @TaskAction
@@ -100,10 +119,7 @@ class SplitTask extends DefaultTask {
 
             // Assign default to rename
             if (!nameTransformer) {
-                nameTransformer = new RegExpNameMapper(
-                        '(.*?)I[.]combined',
-                        "\$1I${prefix.extension}"
-                )
+                this.rename("\$1I${prefix.extension}")
             }
 
             project.copy { c ->
