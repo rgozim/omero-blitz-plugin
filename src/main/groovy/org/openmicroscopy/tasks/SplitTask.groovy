@@ -1,5 +1,6 @@
 package org.openmicroscopy.tasks
 
+import org.apache.commons.io.FilenameUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Transformer
@@ -18,6 +19,8 @@ import org.openmicroscopy.Prefix
 import java.util.regex.Pattern
 
 class SplitTask extends DefaultTask {
+
+    private static final def DEFAULT_SOURCE_NAME = "(.*?)I[.]combined"
 
     /**
      * List of the languages we want to split from .combined files
@@ -39,7 +42,7 @@ class SplitTask extends DefaultTask {
     FileCollection combined
 
     @Optional
-    Transformer<String, String> nameTransformer
+    Tuple2<String, String> renameParams
 
     void setLanguage(String language) {
         Language lang = Language.find(language)
@@ -88,38 +91,39 @@ class SplitTask extends DefaultTask {
     }
 
     void rename(Pattern sourceRegEx, String replaceWith) {
-        this.nameTransformer = new RegExpNameMapper(
-                sourceRegEx,
+        this.renameParams = new Tuple2<String, String>(
+                sourceRegEx.pattern(),
                 replaceWith
         )
     }
 
     void rename(String sourceRegEx, String replaceWith) {
-        this.nameTransformer = new RegExpNameMapper(
+        this.renameParams = new Tuple2<String, String>(
                 sourceRegEx,
                 replaceWith
         )
     }
 
     void rename(String replaceWith) {
-        rename("(.*?)I[.]combined", replaceWith)
+        rename(DEFAULT_SOURCE_NAME, replaceWith)
     }
 
     @TaskAction
     void action() {
-        // Lookup the language
-        Language lang = Language.find(language)
-        if (lang == null) {
-            throw new GradleException("Unsupported language : ${language}")
-        }
-
-        lang.prefixes.each { Prefix prefix ->
+        language.prefixes.each { Prefix prefix ->
             // Transform prefix enum to lower case for naming
             final def prefixName = prefix.name().toLowerCase()
 
+            println renameParams
+
             // Assign default to rename
-            if (!nameTransformer) {
-                this.rename("\$1I${prefix.extension}")
+            Transformer<String, String> nameTransformer
+            if (!renameParams) {
+                nameTransformer = new RegExpNameMapper(DEFAULT_SOURCE_NAME,
+                        "\$1I${prefix.extension}")
+            } else {
+                nameTransformer = new RegExpNameMapper(renameParams.first,
+                        formatSecond(prefix, renameParams.second))
             }
 
             project.copy { c ->
@@ -128,6 +132,15 @@ class SplitTask extends DefaultTask {
                 c.rename nameTransformer
                 c.filter { String line -> filerLine(line, prefixName) }
             }
+        }
+    }
+
+    static def formatSecond(Prefix prefix, String second) {
+        final int index = FilenameUtils.indexOfExtension(second)
+        if (index == -1) {
+            return "${second}${prefix.extension}"
+        } else {
+            return second
         }
     }
 

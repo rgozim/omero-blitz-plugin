@@ -2,7 +2,6 @@ package org.openmicroscopy
 
 import extensions.VelocityExtension
 import org.apache.commons.io.FileUtils
-import org.apache.commons.io.FilenameUtils
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.openmicroscopy.extensions.BlitzExtension
@@ -93,21 +92,10 @@ class BlitzPlugin implements Plugin<Project> {
                     combined = project.fileTree(dir: blitzExt.combinedDir, include: '**/*.combined')
                     language = split.language
                     outputDir = split.outputDir
-                    rename split.rename
+                    rename split.outputName
                 }
             }
         }
-    }
-
-    def getSplitRenamer(SplitExtension split) {
-        final int index = FilenameUtils.indexOfExtension(split.outputName)
-        if (index == -1) {
-
-        } else {
-            return filename.substring(index + 1);
-        }
-
-
     }
 
     def loadCombineFile(Project project) {
@@ -124,7 +112,6 @@ class BlitzPlugin implements Plugin<Project> {
         }
         return result
     }
-
 
 }
 
