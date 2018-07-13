@@ -3,7 +3,6 @@ package org.openmicroscopy.tasks
 import org.apache.commons.io.FilenameUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
-import org.gradle.api.Transformer
 import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.file.copy.RegExpNameMapper
 import org.gradle.api.tasks.Input
@@ -20,7 +19,7 @@ import java.util.regex.Pattern
 
 class SplitTask extends DefaultTask {
 
-    private static final def DEFAULT_SOURCE_NAME = "(.*?)I[.]combined"
+    public static final String DEFAULT_SOURCE_NAME = "(.*?)I[.]combined"
 
     /**
      * List of the languages we want to split from .combined files
@@ -41,6 +40,11 @@ class SplitTask extends DefaultTask {
     @PathSensitive(PathSensitivity.NONE)
     FileCollection combined
 
+    /**
+     * Optional rename params (from, to) that support
+     * regex
+     */
+    @Input
     @Optional
     Tuple2<String, String> renameParams
 
@@ -91,17 +95,15 @@ class SplitTask extends DefaultTask {
     }
 
     void rename(Pattern sourceRegEx, String replaceWith) {
-        this.renameParams = new Tuple2<String, String>(
-                sourceRegEx.pattern(),
-                replaceWith
-        )
+        rename(sourceRegEx.pattern(), replaceWith)
     }
 
     void rename(String sourceRegEx, String replaceWith) {
-        this.renameParams = new Tuple2<String, String>(
-                sourceRegEx,
-                replaceWith
-        )
+        if (textIsNullOrEmpty(sourceRegEx) || textIsNullOrEmpty(sourceRegEx)) {
+            throw new GradleException("Invalid rename parameters")
+        }
+        this.renameParams =
+                new Tuple2<String, String>(sourceRegEx, replaceWith)
     }
 
     void rename(String replaceWith) {
@@ -113,16 +115,19 @@ class SplitTask extends DefaultTask {
         language.prefixes.each { Prefix prefix ->
             // Transform prefix enum to lower case for naming
             final def prefixName = prefix.name().toLowerCase()
-
-            println renameParams
+            final def extension = prefix.extension
 
             // Assign default to rename
-            Transformer<String, String> nameTransformer
+            def nameTransformer
             if (!renameParams) {
                 nameTransformer = new RegExpNameMapper(DEFAULT_SOURCE_NAME,
-                        "\$1I${prefix.extension}")
+                        "\$1I${extension}")
             } else {
-                nameTransformer = new RegExpNameMapper(renameParams.first,
+                def from = renameParams.first
+                if (textIsNullOrEmpty(from)) {
+                    from = DEFAULT_SOURCE_NAME
+                }
+                nameTransformer = new RegExpNameMapper(from,
                         formatSecond(prefix, renameParams.second))
             }
 
@@ -133,6 +138,10 @@ class SplitTask extends DefaultTask {
                 c.filter { String line -> filerLine(line, prefixName) }
             }
         }
+    }
+
+    static def textIsNullOrEmpty(String text) {
+        return !text || text == ""
     }
 
     static def formatSecond(Prefix prefix, String second) {
