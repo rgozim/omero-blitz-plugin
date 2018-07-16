@@ -3,7 +3,6 @@ package org.openmicroscopy.tasks
 import org.apache.commons.io.FilenameUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
-import org.gradle.api.Transformer
 import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.file.copy.RegExpNameMapper
 import org.gradle.api.tasks.Input
@@ -96,19 +95,15 @@ class SplitTask extends DefaultTask {
     }
 
     void rename(Pattern sourceRegEx, String replaceWith) {
-        rename(sourceRegEx.pattern(), replaceWith)
+        this.rename(sourceRegEx.pattern(), replaceWith)
     }
 
     void rename(String sourceRegEx, String replaceWith) {
-        if (textIsNullOrEmpty(sourceRegEx) || textIsNullOrEmpty(sourceRegEx)) {
-            throw new GradleException("Invalid rename parameters")
-        }
-        this.renameParams =
-                new Tuple2<String, String>(sourceRegEx, replaceWith)
+        this.renameParams = new Tuple2<>(sourceRegEx, replaceWith)
     }
 
-    void rename(String replaceWith) {
-        rename(DEFAULT_SOURCE_NAME, replaceWith)
+    void setReplaceWith(String replaceWith) {
+        this.rename(DEFAULT_SOURCE_NAME, replaceWith)
     }
 
     @TaskAction
@@ -122,14 +117,9 @@ class SplitTask extends DefaultTask {
             def nameTransformer
             if (!renameParams) {
                 nameTransformer = new RegExpNameMapper(DEFAULT_SOURCE_NAME,
-                        "\$1I${extension}")
+                        "\$1I.${extension}")
             } else {
-                def from = renameParams.first
-                if (textIsNullOrEmpty(from)) {
-                    from = DEFAULT_SOURCE_NAME
-                }
-                nameTransformer = new RegExpNameMapper(from,
-                        formatSecond(prefix, renameParams.second))
+                nameTransformer = tupleToNameTransformer(prefix)
             }
 
             project.copy { c ->
@@ -141,20 +131,24 @@ class SplitTask extends DefaultTask {
         }
     }
 
-    def tupleToNameTransformer(Prefix prefex, Tuple2<String, String> tuple) {
-        def first = renameParams.first
-        if (first?.trim()) {
+    def tupleToNameTransformer(Prefix prefix) {
+        def first = renameParams.getFirst()
+        if (textIsNullOrEmpty(first)) {
             first = DEFAULT_SOURCE_NAME
         }
-        def second = renameParams.second
+        def second = renameParams.getSecond()
         if (textIsNullOrEmpty(second)) {
-            second = "\$1${prefex.extension}"
+            second = "\$1.${prefix.extension}"
+        } else {
+            second = formatSecond(prefix, second)
         }
+
+        println first + " " + second
         return new RegExpNameMapper(first, second)
     }
 
     static def textIsNullOrEmpty(String text) {
-        return !text || text == ""
+        return !text?.trim()
     }
 
     static def formatSecond(Prefix prefix, String second) {

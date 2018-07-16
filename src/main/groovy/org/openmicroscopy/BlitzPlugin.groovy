@@ -82,8 +82,8 @@ class BlitzPlugin implements Plugin<Project> {
     }
 
     def configureSplitTasks(Project project) {
-        project.afterEvaluate {
-            project.blitz.api.all { SplitExtension split ->
+        project.blitz.api.all { SplitExtension split ->
+            project.afterEvaluate {
                 String taskName = "split${split.name.capitalize()}"
                 def task = project.tasks.create(taskName, SplitTask)
                 task.dependsOn project.tasks.getByName("generateCombinedFiles")
@@ -92,7 +92,7 @@ class BlitzPlugin implements Plugin<Project> {
                 task.combined = project.fileTree(dir: blitzExt.combinedDir, include: '**/*.combined')
                 task.language = split.language
                 task.outputDir = split.outputDir
-                task.rename(split.outputName)
+                task.replaceWith = split.outputName
             }
         }
     }
