@@ -3,6 +3,7 @@ package org.openmicroscopy.tasks
 import org.apache.commons.io.FilenameUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.Transformer
 import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.file.copy.RegExpNameMapper
 import org.gradle.api.tasks.Input
@@ -138,6 +139,18 @@ class SplitTask extends DefaultTask {
                 c.filter { String line -> filerLine(line, prefixName) }
             }
         }
+    }
+
+    def tupleToNameTransformer(Prefix prefex, Tuple2<String, String> tuple) {
+        def first = renameParams.first
+        if (first?.trim()) {
+            first = DEFAULT_SOURCE_NAME
+        }
+        def second = renameParams.second
+        if (textIsNullOrEmpty(second)) {
+            second = "\$1${prefex.extension}"
+        }
+        return new RegExpNameMapper(first, second)
     }
 
     static def textIsNullOrEmpty(String text) {
