@@ -1,4 +1,4 @@
-package org.openmicroscopy
+package org.openmicroscopy.blitz
 /**
  * List of supported languages by blitz code generation
  */

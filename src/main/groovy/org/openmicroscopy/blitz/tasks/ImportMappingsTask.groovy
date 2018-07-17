@@ -1,4 +1,4 @@
-package org.openmicroscopy.tasks
+package org.openmicroscopy.blitz.tasks
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -14,7 +14,7 @@ import org.gradle.api.tasks.TaskAction
  * Example usage:
  * <pre>
  * {@code
- * task importMappings(type: org.openmicroscopy.tasks.ImportMappingsTask)
+ * task importMappings(type: org.openmicroscopy.blitz.tasks.ImportMappingsTask)
  *}
  * </pre>
  */

@@ -1,4 +1,4 @@
-package org.openmicroscopy.tasks
+package org.openmicroscopy.blitz.tasks
 
 import org.apache.commons.io.FilenameUtils
 import org.gradle.api.DefaultTask
@@ -12,8 +12,8 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
-import org.openmicroscopy.Language
-import org.openmicroscopy.Prefix
+import org.openmicroscopy.blitz.Language
+import org.openmicroscopy.blitz.Prefix
 
 import java.util.regex.Pattern
 
@@ -155,7 +155,7 @@ class SplitTask extends DefaultTask {
     static def formatSecond(Prefix prefix, String second) {
         final int index = FilenameUtils.indexOfExtension(second)
         if (index == -1) {
-            return "${second}${prefix.extension}"
+            return "${second}.${prefix.extension}"
         } else {
             return second
         }

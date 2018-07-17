@@ -1,4 +1,4 @@
-package org.openmicroscopy
+package org.openmicroscopy.blitz
 /**
  * File extension each prefix in .combined corresponds to
  */

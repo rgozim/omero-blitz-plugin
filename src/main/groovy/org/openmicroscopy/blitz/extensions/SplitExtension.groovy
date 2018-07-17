@@ -1,8 +1,8 @@
-package org.openmicroscopy.extensions
+package org.openmicroscopy.blitz.extensions
 
 import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.openmicroscopy.Language
+import org.openmicroscopy.blitz.Language
 
 import java.util.regex.Pattern
 

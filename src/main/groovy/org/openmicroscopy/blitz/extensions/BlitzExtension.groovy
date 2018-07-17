@@ -1,4 +1,4 @@
-package org.openmicroscopy.extensions
+package org.openmicroscopy.blitz.extensions
 
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
