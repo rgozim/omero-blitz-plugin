@@ -20,6 +20,7 @@ import java.util.regex.Pattern
 class SplitTask extends DefaultTask {
 
     public static final String DEFAULT_SOURCE_NAME = "(.*?)I[.]combined"
+    public static final String DEFAULT_RESULT_NAME = "\$1I"
 
     /**
      * List of the languages we want to split from .combined files
@@ -117,7 +118,7 @@ class SplitTask extends DefaultTask {
             def nameTransformer
             if (!renameParams) {
                 nameTransformer = new RegExpNameMapper(DEFAULT_SOURCE_NAME,
-                        "\$1I.${extension}")
+                        DEFAULT_RESULT_NAME + ".${extension}")
             } else {
                 nameTransformer = tupleToNameTransformer(prefix)
             }
@@ -138,12 +139,12 @@ class SplitTask extends DefaultTask {
         }
         def second = renameParams.getSecond()
         if (textIsNullOrEmpty(second)) {
-            second = "\$1.${prefix.extension}"
+            second = DEFAULT_RESULT_NAME + ".${prefix.extension}"
         } else {
             second = formatSecond(prefix, second)
         }
 
-        println first + " " + second
+        println "Renaming from: ${first} \t to: ${second}"
         return new RegExpNameMapper(first, second)
     }
 
