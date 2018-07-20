@@ -41,7 +41,6 @@ class BlitzBasePlugin implements Plugin<Project> {
             blitzExt.api.all { SplitExtension split ->
                 String taskName = "split${split.name.capitalize()}"
                 def task = project.tasks.create(taskName, SplitTask)
-                task.dependsOn project.tasks.getByName("generateCombinedFiles")
                 task.group = GROUP
                 task.description = "Splits ${split.language} from .combined files"
                 task.combined = project.fileTree(dir: blitzExt.combinedDir, include: '**/*.combined')

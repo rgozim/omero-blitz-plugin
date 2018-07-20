@@ -10,8 +10,8 @@ version '0.1.0'
 gradlePlugin {
     plugins {
         BlitzPlugin {
-            id = 'org.openmicroscopy.blitzplugin'
-            implementationClass = 'org.openmicroscopy.BlitzPlugin'
+            id = 'org.openmicroscopy.blitz'
+            implementationClass = 'org.openmicroscopy.blitz.BlitzPlugin'
         }
     }
 }

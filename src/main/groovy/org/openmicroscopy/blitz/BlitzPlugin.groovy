@@ -33,22 +33,30 @@ class BlitzPlugin implements Plugin<Project> {
      */
     def configureCombineTask(Project project) {
         project.afterEvaluate {
-            VelocityExtension ve = project.extensions
-                    .findByName("velocity") as VelocityExtension
-            if (ve) {
-                // Config for velocity
-                ve.loggerClassName = project.getLogger().getClass().getName()
-            }
+            def ve = new VelocityExtension(project)
+            // Config for velocity
+            ve.loggerClassName = project.getLogger().getClass().getName()
 
-            project.tasks.create("generateCombinedFiles", DslMultiFileTask) {
+            def genCombineFilesTask = project.tasks.create("generateCombinedFiles", DslMultiFileTask) {
                 group = BlitzBasePlugin.GROUP
                 description = "Processes combined.vm and generates .combined files"
                 profile = "psql"
                 template = ResourceLoader.loadFile(project, "templates/combined.vm")
-                omeXmlFiles = OmeXmlLoader.loadOmeXmlFiles(project)
                 velocityProperties = ve.data.get()
                 outputPath = blitzExt.combinedDir
                 formatOutput = { st -> "${st.getShortname()}I.combined" }
+                omeXmlFiles = OmeXmlLoader.loadOmeXmlFiles(project)
+            }
+
+            // Find all splitXXX tasks
+            def splitTaskNames = project.tasks.getNames().findAll {
+                it.matches("split(.*)")
+            }
+
+            // And make them depend on generateCombinedFiles task
+            splitTaskNames.each {
+                def task = project.tasks.getByName(it)
+                task.dependsOn genCombineFilesTask
             }
         }
     }
