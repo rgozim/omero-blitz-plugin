@@ -1,7 +1,6 @@
 package org.openmicroscopy.blitz.extensions
 
 import org.gradle.api.GradleException
-import org.gradle.api.Project
 import org.openmicroscopy.blitz.Language
 
 import java.util.regex.Pattern
@@ -9,30 +8,32 @@ import java.util.regex.Pattern
 class SplitExtension {
     final String name
 
-    final Project project
-
     Language language
 
-    File outputDir
+    File outputPath
 
-    File combinedDir
+    File combinedPath
 
     String outputName
 
-    void setLanguage(String language) {
-        Language lang = Language.find(language)
+    void setLanguage(String languageString) {
+        Language lang = Language.find(languageString)
         if (lang == null) {
-            throw new GradleException("Unsupported language: ${language}")
+            throw new GradleException("Unsupported language: ${languageString}")
         }
         this.language = lang
     }
 
-    void setOutputDir(Object dir) {
-        this.outputDir = project.file(dir)
+    void setCombinedPath(String path) {
+        combinedPath = new File(path)
     }
 
-    void setCombinedDir(Object combinedDir) {
-        this.combinedDir = project.file(combinedDir)
+    void setOutputPath(String path) {
+        outputPath = new File(path)
+    }
+
+    void setOutputName(String name) {
+        outputName = name
     }
 
     void language(String language) {
@@ -40,37 +41,44 @@ class SplitExtension {
     }
 
     void language(Language lang) {
-        this.language = lang
+        language = lang
     }
 
-    void outputDir(Object dir) {
-        setOutputDir(dir)
+    void combinedPath(String path) {
+        setCombinedPath(path)
     }
 
-    void combinedDir(Object dir) {
-        setCombinedDir(dir)
+    void combinedPath(File path) {
+        combinedPath = path
     }
 
-    def rename(Pattern sourceRegEx, String replaceWith) {
+    void outputPath(String dir) {
+        setOutputPath(dir)
+    }
+
+    void outputPath(File dir) {
+        outputPath = dir
+    }
+
+    void outputName(String name) {
+        setOutputName(name)
+    }
+
+    void rename(Pattern sourceRegEx, String replaceWith) {
         this.nameTransformer = new Tuple(
                 sourceRegEx,
                 replaceWith
         )
     }
 
-    def rename(String sourceRegEx, String replaceWith) {
+    void rename(String sourceRegEx, String replaceWith) {
         this.nameTransformer = new Tuple(
                 sourceRegEx,
                 replaceWith
         )
     }
 
-    def outputName(String name) {
-        this.outputName = name
-    }
-
-    SplitExtension(String name, Project project) {
+    SplitExtension(String name) {
         this.name = name
-        this.project = project
     }
 }

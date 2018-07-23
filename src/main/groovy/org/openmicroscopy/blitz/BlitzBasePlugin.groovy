@@ -32,8 +32,7 @@ class BlitzBasePlugin implements Plugin<Project> {
         blitzExt = baseExt.create('blitz', BlitzExtension, project)
 
         // Add container for blitz
-        blitzExt.extensions.add('api',
-                project.container(SplitExtension, { new SplitExtension(it, project) }))
+        blitzExt.extensions.add('api', project.container(SplitExtension))
     }
 
     def configureSplitTasks(Project project) {
@@ -43,13 +42,26 @@ class BlitzBasePlugin implements Plugin<Project> {
                 def task = project.tasks.create(taskName, SplitTask)
                 task.group = GROUP
                 task.description = "Splits ${split.language} from .combined files"
-                task.combined = project.fileTree(dir: blitzExt.combinedDir, include: '**/*.combined')
+                task.combined = project.fileTree(
+                        dir: getDir(split.combinedPath, blitzExt.combinedPath),
+                        include: '**/*.combined'
+                )
+                task.outputDir = getDir(split.outputPath,
+                        blitzExt.outputPath)
                 task.language = split.language
-                task.outputDir = split.outputDir
                 task.replaceWith = split.outputName
             }
         }
     }
 
-
+    static def getDir(File expected, File fallback) {
+        if (expected) {
+            if (expected.isAbsolute()) {
+                return expected
+            } else if (fallback) {
+                return new File(fallback, expected.path)
+            }
+        }
+        return fallback
+    }
 }

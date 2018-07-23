@@ -43,7 +43,7 @@ class BlitzPlugin implements Plugin<Project> {
                 profile = "psql"
                 template = ResourceLoader.loadFile(project, "templates/combined.vm")
                 velocityProperties = ve.data.get()
-                outputPath = blitzExt.combinedDir
+                outputPath = blitzExt.combinedPath
                 formatOutput = { st -> "${st.getShortname()}I.combined" }
                 omeXmlFiles = OmeXmlLoader.loadOmeXmlFiles(project)
             }

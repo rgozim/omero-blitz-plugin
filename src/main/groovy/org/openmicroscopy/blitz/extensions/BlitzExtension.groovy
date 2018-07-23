@@ -1,42 +1,47 @@
 package org.openmicroscopy.blitz.extensions
 
 import org.gradle.api.Project
-import org.gradle.api.file.FileCollection
 
 class BlitzExtension {
-    static final def OME_XML_FILES_DIR = "extracted"
+
     static final def COMBINED_FILES_DIR = "combined"
 
-    FileCollection omeXmlFiles
+    final Project project
 
-    File combinedDir
+    File combinedPath
 
-    void setOmeXmlFiles(FileCollection files) {
-        omeXmlFiles(files)
+    File outputPath
+
+    void setCombinedPath(String dir) {
+        this.combinedPath = new File(dir)
+    }
+    
+    void setOutputPath(String dir) {
+        setOutputPath(new File(dir))
     }
 
-    void omeXmlFiles(FileCollection files) {
-        if (this.omeXmlFiles) {
-            this.omeXmlFiles = this.omeXmlFiles + files
+    void setOutputPath(File path) {
+        if (!path.isAbsolute()) {
+            outputPath = project.file(path)
         } else {
-            this.omeXmlFiles = files
+            outputPath = path
         }
     }
 
-    void setCombinedDir(String dir) {
-        combinedDir(dir)
+    void combinedPath(String dir) {
+        setCombinedPath(dir)
     }
 
-    void combinedDir(String dir) {
-        this.combinedDir = new File(dir)
+    void outputPath(String dir) {
+        setOutputPath(dir)
+    }
+
+    void outputPath(File dir) {
+        setOutputPath(dir)
     }
 
     BlitzExtension(Project project) {
-        // Set defaults
-        omeXmlFiles = project.fileTree(
-                dir: "${project.buildDir}/${OME_XML_FILES_DIR}",
-                include: "**/*.ome.xml"
-        )
-        combinedDir = project.file("${project.buildDir}/${COMBINED_FILES_DIR}")
+        this.project = project
+        this.combinedPath = project.file("${project.buildDir}/${COMBINED_FILES_DIR}")
     }
 }
