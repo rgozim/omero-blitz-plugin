@@ -29,7 +29,8 @@ repositories {
 }
 
 dependencies {
-    compile 'org.openmicroscopy:dslplugin:0.1.0'
+    implementation 'org.openmicroscopy:dslplugin:0.1.0'
+    implementation 'commons-io:commons-io:2.6'
 }
 
 task sourceJar(type: Jar, dependsOn: classes) {
