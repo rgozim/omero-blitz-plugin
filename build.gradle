@@ -26,6 +26,10 @@ sourceSets {
 repositories {
     mavenCentral()
     mavenLocal()
+    gradlePluginPortal()
+    maven {
+        url "https://plugins.gradle.org/m2/"
+    }
 }
 
 dependencies {
