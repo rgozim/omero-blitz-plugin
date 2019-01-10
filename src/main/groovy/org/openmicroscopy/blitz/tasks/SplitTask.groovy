@@ -163,7 +163,7 @@ class SplitTask extends DefaultTask {
 
     static def filerLine(String line, String prefix) {
         return line.matches("^\\[all](.*)|^\\[${prefix}](.*)") ?
-                line.replaceAll("^\\[all]|^\\[${prefix}]", "") :
+                line.replaceAll("^\\[all]\\s?|^\\[${prefix}]\\s?", "") :
                 null
     }
 }
