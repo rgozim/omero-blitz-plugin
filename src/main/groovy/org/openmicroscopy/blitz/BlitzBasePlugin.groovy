@@ -2,12 +2,11 @@ package org.openmicroscopy.blitz
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.plugins.ExtensionContainer
+import org.gradle.api.tasks.Delete
 import org.openmicroscopy.blitz.extensions.BlitzExtension
 import org.openmicroscopy.blitz.extensions.SplitExtension
 import org.openmicroscopy.blitz.tasks.SplitTask
-import org.openmicroscopy.dsl.DslPluginBase
 import org.openmicroscopy.dsl.extensions.VelocityExtension
 import org.openmicroscopy.dsl.tasks.DslMultiFileTask
 import org.openmicroscopy.dsl.utils.OmeXmlLoader
@@ -22,8 +21,6 @@ class BlitzBasePlugin implements Plugin<Project> {
     static final def GROUP = "omero-blitz"
 
     BlitzExtension blitzExt
-
-    Task genCombineFilesTask
 
     @Override
     void apply(Project project) {
@@ -52,12 +49,12 @@ class BlitzBasePlugin implements Plugin<Project> {
      */
     def configureCombineTask(Project project) {
         project.afterEvaluate {
-            def ve = new VelocityExtension(project)
             // Config for velocity
+            def ve = new VelocityExtension(project)
             ve.loggerClassName = project.getLogger().getClass().getName()
 
-            genCombineFilesTask = project.tasks.create("generateCombinedFiles", DslMultiFileTask) {
-                group = DslPluginBase.GROUP
+            def task = project.tasks.create("generateCombinedFiles", DslMultiFileTask) {
+                group = GROUP
                 description = "Processes combined.vm and generates .combined files"
                 profile = "psql"
                 template = ResourceLoader.loadFile(project, "templates/combined.vm")
@@ -66,6 +63,9 @@ class BlitzBasePlugin implements Plugin<Project> {
                 formatOutput = { st -> "${st.getShortname()}I.combined" }
                 omeXmlFiles = OmeXmlLoader.loadOmeXmlFiles(project)
             }
+
+            // Add cleanup tasks
+            addCleanTask(project, task.name, task.outputPath)
         }
     }
 
@@ -73,7 +73,7 @@ class BlitzBasePlugin implements Plugin<Project> {
         project.afterEvaluate {
             blitzExt.api.all { SplitExtension split ->
                 String taskName = "split${split.name.capitalize()}"
-                Task splitTask = project.tasks.create(taskName, SplitTask) {
+                def task = project.tasks.create(taskName, SplitTask) {
                     group = GROUP
                     description = "Splits ${split.language} from .combined files"
                     combined = project.fileTree(
@@ -86,9 +86,25 @@ class BlitzBasePlugin implements Plugin<Project> {
                 }
 
                 // All split tasks require the .combined files to work.
-                splitTask.dependsOn genCombineFilesTask
+                task.dependsOn getGenerateCombinedFilesTask(project)
+
+                // Add cleanup tasks
+                addCleanTask(project, task.name, task.outputDir)
             }
         }
+    }
+
+    def addCleanTask(Project project, String taskName, File toDelete) {
+        String cleanTaskName = "clean${taskName.capitalize()}"
+        project.tasks.create(cleanTaskName, Delete) {
+            group GROUP
+            delete toDelete
+            shouldRunAfter project.tasks.getByName('clean')
+        }
+    }
+
+    def getGenerateCombinedFilesTask(Project project) {
+        return project.tasks.findByName("generateCombinedFiles")
     }
 
     static def getDir(File expected, File fallback) {
