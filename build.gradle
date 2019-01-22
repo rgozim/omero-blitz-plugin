@@ -23,20 +23,11 @@ repositories {
 }
 
 dependencies {
+    testImplementation "junit:junit:4.12"
+    testImplementation "org.spockframework:spock-core:1.2-groovy-2.5"
+
     implementation 'org.openmicroscopy:dslplugin:5.5.0-SNAPSHOT'
     implementation 'commons-io:commons-io:2.6'
 }
 
-task sourceJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifact sourceJar
-        }
-    }
-}
+apply from: "publish.gradle"

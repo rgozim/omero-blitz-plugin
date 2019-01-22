@@ -1,13 +1,14 @@
 ### OMERO blitz Gradle plugin
 
-The _omero-blitz-plugin_ is a gradle plugin that provides users and projects the ability to generate/compile the nessacary files 
+The _omero-blitz-plugin_ is a gradle plugin that provides users and projects the ability to generate/compile the necessary files
 required files to use _omero-blitz_
 
 From a high level, blitz-plugin consists of the following tasks/stages:
 
 1. Import `.ome.xml` map files from `org.openmicroscopy:omero-model` (`omero-model.jar`) resources
-2. Using the [`omero-dsl-plugin`](https://gitlab.com/openmicroscopy/incubator/omero-dsl), generate `xx.combined` files
-3. Process & split `xx.combined` files into chosen languages
+2. Import `-types.properties` files from `org.openmicroscopy:omero-model` (`omero-model.jar`) resources
+3. Using the [`omero-dsl-plugin`](https://gitlab.com/openmicroscopy/incubator/omero-dsl), generate `xx.combined` files
+4. Process and split `xx.combined` files into chosen languages
 
 ### Usage
 
@@ -65,14 +66,14 @@ blitz {
 ### SplitTask
 
 The `SplitTask` class is responsible for splitting languages from `.combine` files.
-It supports the following languages : 
+It supports the following languages:
 * `java`
 * `c++ (cpp)`
 * `python`
 * `ice`
 
 If you wish to use the `SplitTask` outside of the `blitz {}` scope, you can customise
-it's functionality using
+its functionality using
 
 ```groovy
 // Handle headers
