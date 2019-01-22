@@ -6,42 +6,43 @@ class BlitzExtension {
 
     static final def COMBINED_FILES_DIR = "combined"
 
+    static final def OME_XML_FILES_DIR = "extracted"
+
     final Project project
 
-    File combinedPath
+    File combinedDir
 
-    File outputPath
+    File omeXmlDir
 
-    void setCombinedPath(String dir) {
-        this.combinedPath = new File(dir)
-    }
-    
-    void setOutputPath(String dir) {
-        setOutputPath(new File(dir))
+    File outputDir
+
+    void setCombinedDir(Object dir) {
+        combinedDir = project.file(dir)
     }
 
-    void setOutputPath(File path) {
-        if (!path.isAbsolute()) {
-            outputPath = project.file(path)
-        } else {
-            outputPath = path
-        }
+    void setOmeXmlDir(Object dir) {
+        outputDir = project.file(dir)
     }
 
-    void combinedPath(String dir) {
-        setCombinedPath(dir)
+    void setOutputDir(Object dir) {
+        outputDir = project.file(dir)
     }
 
-    void outputPath(String dir) {
-        setOutputPath(dir)
+    void combinedDir(Object dir) {
+        setCombinedDir(dir)
     }
 
-    void outputPath(File dir) {
-        setOutputPath(dir)
+    void omeXmlDir(Object dir) {
+        setOmeXmlDir(dir)
+    }
+
+    void outputDir(Object dir) {
+        setOutputDir(dir)
     }
 
     BlitzExtension(Project project) {
         this.project = project
-        this.combinedPath = project.file("${project.buildDir}/${COMBINED_FILES_DIR}")
+        this.combinedDir = project.file("${project.buildDir}/${COMBINED_FILES_DIR}")
+        this.omeXmlDir = project.file("${project.buildDir}/$OME_XML_FILES_DIR")
     }
 }

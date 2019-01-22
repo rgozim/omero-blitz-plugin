@@ -3,8 +3,7 @@ package org.openmicroscopy.blitz.tasks
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.artifacts.DependencySet
-import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.tasks.Internal
+import org.gradle.api.logging.Logging
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 
@@ -20,14 +19,29 @@ import org.gradle.api.tasks.TaskAction
  */
 class ImportMappingsTask extends DefaultTask {
 
-    @Internal
-    static final String CONFIGURATION_NAME = 'omeXmlFiles'
+    private final def Log = Logging.getLogger(ImportMappingsTask)
 
-    @Internal
-    static final String OMERO_MODEL_VERSION = '1.0-SNAPSHOT'
+    private final String CONFIGURATION_NAME = 'omeXmlFiles'
+
+    private final String OMERO_MODEL_VERSION = project.properties['omeroModelVersion']
 
     @OutputDirectory
     File extractDir
+
+    @TaskAction
+    void apply() {
+        def omeroModelArtifact = getOmeroModelArtifact()
+        if (!omeroModelArtifact) {
+            throw new GradleException('Can\'t find omero-model artifact')
+        }
+
+        Log.info("Extracting ome.xml files to: " + extractDir)
+        project.copy {
+            from project.zipTree(omeroModelArtifact.file)
+            into extractDir
+            include "mappings/*.ome.xml"
+        }
+    }
 
     void setExtractDir(Object dir) {
         this.extractDir = project.file(dir)
@@ -37,45 +51,26 @@ class ImportMappingsTask extends DefaultTask {
         setExtractDir(dir)
     }
 
-    @TaskAction
-    void apply() {
-        def omeroModelArtifact = getOmeroModelArtifact()
-        if (!omeroModelArtifact) {
-            throw new GradleException('Can\'t find omero-model artifact')
-        }
-
-        println "Extracting to: " + extractDir
-
-        project.copy {
-            from project.zipTree(omeroModelArtifact.file)
-            into extractDir
-            include "mappings/*.ome.xml"
-        }
-
-        println "project.copy"
-    }
-
-    def getOmeroModelArtifact() {
-        def artifact = project.plugins.hasPlugin(JavaPlugin) ?
-                getOmeroModelFromCompileConfig() : null
-
+    private def getOmeroModelArtifact() {
+        def artifact = getOmeroModelFromCompileConfig()
         if (artifact) {
+            Log.info("omero-model found as a dependency")
             return artifact
         } else {
+            Log.info("Adding omero-model as a dependency to obtain ome.xml files")
             return getOmeroModelWithCustomConfig()
         }
     }
 
-    def getOmeroModelFromCompileConfig() {
-        return project.configurations.compile
-                .resolvedConfiguration
-                .resolvedArtifacts
-                .find { item ->
-            item.name.contains("omero-model")
+    private def getOmeroModelFromCompileConfig() {
+        return project.configurations.findAll { config ->
+            config.resolvedConfiguration
+                    .resolvedArtifacts
+                    .find { item -> item.name.contains("omero-model") }
         }
     }
 
-    def getOmeroModelWithCustomConfig() {
+    private def getOmeroModelWithCustomConfig() {
         def config = project.configurations.findByName(CONFIGURATION_NAME)
         if (!config) {
             config = project.configurations.create(CONFIGURATION_NAME)

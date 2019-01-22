@@ -10,9 +10,9 @@ class SplitExtension {
 
     Language language
 
-    File outputPath
+    File outputDir
 
-    File combinedPath
+    File combinedDir
 
     String outputName
 
@@ -24,12 +24,12 @@ class SplitExtension {
         this.language = lang
     }
 
-    void setCombinedPath(String path) {
-        combinedPath = new File(path)
+    void setCombinedDir(String path) {
+        combinedDir = new File(path)
     }
 
-    void setOutputPath(String path) {
-        outputPath = new File(path)
+    void setOutputDir(String path) {
+        outputDir = new File(path)
     }
 
     void setOutputName(String name) {
@@ -44,20 +44,20 @@ class SplitExtension {
         language = lang
     }
 
-    void combinedPath(String path) {
-        setCombinedPath(path)
+    void combinedDir(String path) {
+        setCombinedDir(path)
     }
 
-    void combinedPath(File path) {
-        combinedPath = path
+    void combinedDir(File path) {
+        combinedDir = path
     }
 
-    void outputPath(String dir) {
-        setOutputPath(dir)
+    void outputDir(String dir) {
+        setOutputDir(dir)
     }
 
-    void outputPath(File dir) {
-        outputPath = dir
+    void outputDir(File dir) {
+        outputDir = dir
     }
 
     void outputName(String name) {
@@ -80,5 +80,11 @@ class SplitExtension {
 
     SplitExtension(String name) {
         this.name = name
+        def lang = Language.values().find { lang ->
+            name.toUpperCase().contains(lang.name())
+        }
+        if (lang) {
+            this.language = lang
+        }
     }
 }

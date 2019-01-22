@@ -9,8 +9,6 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.PathSensitive
-import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.openmicroscopy.blitz.Language
 import org.openmicroscopy.blitz.Prefix
@@ -38,15 +36,14 @@ class SplitTask extends DefaultTask {
      * Collection of .combined files to process
      */
     @InputFiles
-    @PathSensitive(PathSensitivity.NONE)
     FileCollection combined
 
     /**
      * Optional rename params (from, to) that support
      * regex
      */
-    @Input
     @Optional
+    @Input
     Tuple2<String, String> renameParams
 
     void setLanguage(String language) {

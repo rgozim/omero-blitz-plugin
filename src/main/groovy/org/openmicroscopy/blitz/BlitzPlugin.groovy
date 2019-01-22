@@ -11,9 +11,9 @@ class BlitzPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
         // Apply base plugin
-        def basePlugin = project.plugins.apply(BlitzBasePlugin.class)
+        def basePlugin = project.plugins.apply(BlitzBasePlugin)
 
-        // Get Extension
+        // Get BlitzExtension
         blitzExt = basePlugin.blitzExt
     }
 
