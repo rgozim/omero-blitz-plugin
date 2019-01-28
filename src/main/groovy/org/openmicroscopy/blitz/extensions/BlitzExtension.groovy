@@ -1,8 +1,6 @@
 package org.openmicroscopy.blitz.extensions
 
 import org.gradle.api.Project
-import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.FileCollection
 
 class BlitzExtension {
 
@@ -11,8 +9,6 @@ class BlitzExtension {
     static final def OME_XML_FILES_DIR = "extracted"
 
     final Project project
-
-    final ConfigurableFileCollection omeXmlFiles
 
     String databaseType
 
@@ -28,25 +24,8 @@ class BlitzExtension {
 
     BlitzExtension(Project project) {
         this.project = project
-        this.omeXmlFiles = project.files()
         this.combinedDir = project.file("${project.buildDir}/${COMBINED_FILES_DIR}")
         this.omeXmlDir = project.file("${project.buildDir}/$OME_XML_FILES_DIR")
-    }
-
-    void omeXmlFiles(FileCollection files) {
-        setOmeXmlFiles(files)
-    }
-
-    void omeXmlFiles(Object... files) {
-        setOmeXmlFiles(files)
-    }
-
-    void setOmeXmlFiles(FileCollection files) {
-        omeXmlFiles.setFrom(files)
-    }
-
-    void setOmeXmlFiles(Object... files) {
-        setOmeXmlFiles(project.files(files))
     }
 
     void databaseType(String type) {

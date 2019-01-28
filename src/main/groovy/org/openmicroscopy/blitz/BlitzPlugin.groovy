@@ -14,7 +14,9 @@ import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.TaskProvider
 import org.openmicroscopy.blitz.tasks.CombinedFileTask
+import org.openmicroscopy.dsl.DslPlugin
 import org.openmicroscopy.dsl.extensions.VelocityExtension
+import org.openmicroscopy.dsl.tasks.DslBaseTask
 
 class BlitzPlugin implements Plugin<Project> {
 
@@ -23,19 +25,46 @@ class BlitzPlugin implements Plugin<Project> {
     private static final def patternXml = "**/*.ome.xml"
 
     private static final def patternType = "**/*-types.properties"
+
+    private TaskProvider<Copy> importMappings
+
+    private TaskProvider<Copy> importDatabaseTypes
+
+    private TaskProvider<CombinedFileTask> generateCombinedFiles
+
     @Override
     void apply(Project project) {
         // Apply the base blitz plugin
         project.plugins.apply(BlitzPluginBase)
 
-        project.blitz.omeXmlFiles = project.fileTree(
-                dir: "${project.buildDir}/mappings",
-                include: "${patternXml}"
-        )
-
+        registerBasicTasks(project)
         configureDefaultCombinedDir(project)
-        configureImportMappingsTask(project)
         configureForJavaPlugin(project)
+        configureImportMappingsTask(project)
+        configureForDslPlugin(project)
+    }
+
+    void registerBasicTasks(Project project) {
+        importMappings = project.tasks.register("importMappings", Copy) {
+            group = BlitzPluginBase.GROUP
+        }
+
+        importDatabaseTypes = project.tasks.register("importDatabaseTypes", Copy) {
+            group = BlitzPluginBase.GROUP
+        }
+
+        generateCombinedFiles = project.tasks.register('generateCombinedFiles', CombinedFileTask) {
+            group = BlitzPluginBase.GROUP
+            description = "Processes combined.vm and generates .combined files"
+            dependsOn importMappings, importDatabaseTypes
+            databaseTypes importDatabaseTypes
+            omeXmlFiles importMappings
+            outputDir = project.blitz.combinedDir
+            template = project.blitz.template
+            databaseType = project.blitz.databaseType
+            formatOutput = { st -> "${st.getShortname()}I.combined" }
+            velocityProperties = new VelocityExtension(project).data.get()
+        }
     }
 
     void configureDefaultCombinedDir(Project project) {
@@ -50,15 +79,6 @@ class BlitzPlugin implements Plugin<Project> {
      * @return
      */
     void configureImportMappingsTask(Project project) {
-
-        TaskProvider<Copy> importMappings = project.tasks.register("importMappings", Copy) {
-            group = BlitzPluginBase.GROUP
-        }
-
-        TaskProvider<Copy> importDatabaseTypes = project.tasks.register("importDatabaseTypes", Copy) {
-            group = BlitzPluginBase.GROUP
-        }
-
         // After project configurations have been evaluated, we look for or add omero-model.jar
         project.afterEvaluate {
             def omeroModelArtifact = getOmeroModelArtifact(project)
@@ -66,63 +86,20 @@ class BlitzPlugin implements Plugin<Project> {
                 throw new GradleException('Can\'t find omero-model artifact')
             }
 
-            def fileTree = project.zipTree(omeroModelArtifact.file)
+            def omeroModelFiles = project.zipTree(omeroModelArtifact.file)
 
             // Register extract ome.xml from omero-model task
             importMappings.configure {
                 into "$project.buildDir/mappings"
-                with createImportMappingsSpec(project, fileTree)
+                with createImportMappingsSpec(project, omeroModelFiles)
             }
 
             importDatabaseTypes.configure {
                 into "$project.buildDir/properties"
-                with createImportDatabaseTypesSpec(project, fileTree)
-            }
-
-            // Configure generateCombinedFiles task to depend on importOmeXmlTask
-            project.tasks.register('generateCombinedFiles', CombinedFileTask) {
-                group = BlitzPluginBase.GROUP
-                description = "Processes combined.vm and generates .combined files"
-                dependsOn importMappings, importDatabaseTypes
-                databaseTypes importDatabaseTypes
-                omeXmlFiles importMappings
-                outputDir = project.blitz.combinedDir
-                template = project.blitz.template
-                databaseType = project.blitz.databaseType
-                formatOutput = { st -> "${st.getShortname()}I.combined" }
-                velocityProperties = new VelocityExtension(project).data.get()
-            }
-
-            project.tasks.named("generateObjectFactoryRegistrar").configure { t ->
-                t.dependsOn importMappings, importDatabaseTypes
-                t.databaseTypes importDatabaseTypes
-                t.omeXmlFiles importMappings
+                with createImportDatabaseTypesSpec(project, omeroModelFiles)
             }
         }
     }
-
-    CopySpec createImportMappingsSpec(Project project, FileTree artifactTree) {
-        return project.copySpec {
-            from artifactTree
-            include patternXml
-            includeEmptyDirs false
-            // Flatten the hierarchy by setting the path
-            // of all files to their respective basename
-            eachFile { path = name }
-        }
-    }
-
-    CopySpec createImportDatabaseTypesSpec(Project project, FileTree artifactTree) {
-        return project.copySpec {
-            from artifactTree
-            include patternType
-            includeEmptyDirs false
-            // Flatten the hierarchy by setting the path
-            // of all files to their respective basename
-            eachFile { path = name }
-        }
-    }
-
 
     void configureForJavaPlugin(Project project) {
         // Configure default outputDir
@@ -138,6 +115,36 @@ class BlitzPlugin implements Plugin<Project> {
 
             main.java.srcDirs "${project.blitz.outputDir}/java"
             main.resources.srcDirs "${project.blitz.outputDir}/resources"
+        }
+    }
+
+    void configureForDslPlugin(Project project) {
+        project.plugins.withType(DslPlugin) { DslPlugin dsl ->
+            project.tasks.withType(DslBaseTask).configureEach { DslBaseTask task ->
+                task.dependsOn importMappings, importDatabaseTypes
+            }
+        }
+    }
+
+    private CopySpec createImportMappingsSpec(Project project, FileTree artifactTree) {
+        return project.copySpec {
+            from artifactTree
+            include patternXml
+            includeEmptyDirs false
+            // Flatten the hierarchy by setting the path
+            // of all files to their respective basename
+            eachFile { path = name }
+        }
+    }
+
+    private CopySpec createImportDatabaseTypesSpec(Project project, FileTree artifactTree) {
+        return project.copySpec {
+            from artifactTree
+            include patternType
+            includeEmptyDirs false
+            // Flatten the hierarchy by setting the path
+            // of all files to their respective basename
+            eachFile { path = name }
         }
     }
 
