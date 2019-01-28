@@ -24,6 +24,8 @@ class BlitzExtension {
 
     File template
 
+    String modelVersion
+
     BlitzExtension(Project project) {
         this.project = project
         this.omeXmlFiles = project.files()
@@ -81,6 +83,10 @@ class BlitzExtension {
 
     void template(Object p) {
         setTemplate(p)
+    }
+
+    void modelVersion(String version) {
+        modelVersion = version
     }
 
 }

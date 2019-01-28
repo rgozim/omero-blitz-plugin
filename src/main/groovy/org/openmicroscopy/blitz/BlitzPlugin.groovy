@@ -173,7 +173,7 @@ class BlitzPlugin implements Plugin<Project> {
                     .setDescription("The data artifacts to be processed for this plugin.");
         }
 
-        def omeroModelVersion = project.properties['omeroModelVersion']
+        def omeroModelVersion = project.blitz.modelVersion
         if (config.dependencies.empty) {
             config.defaultDependencies { DependencySet dependencies ->
                 dependencies.add project.dependencies.create("org.openmicroscopy:omero-model:${omeroModelVersion}")
