@@ -89,6 +89,12 @@ class BlitzPlugin implements Plugin<Project> {
                 formatOutput = { st -> "${st.getShortname()}I.combined" }
                 velocityProperties = new VelocityExtension(project).data.get()
             }
+
+            project.tasks.named("generateObjectFactoryRegistrar").configure { t ->
+                t.dependsOn importMappings, importDatabaseTypes
+                t.databaseTypes importDatabaseTypes
+                t.omeXmlFiles importMappings
+            }
         }
     }
 
