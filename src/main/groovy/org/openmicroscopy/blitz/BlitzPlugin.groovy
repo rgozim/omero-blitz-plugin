@@ -20,6 +20,9 @@ class BlitzPlugin implements Plugin<Project> {
 
     private static final def Log = Logging.getLogger(BlitzPlugin)
 
+    private static final def patternXml = "**/*.ome.xml"
+
+    private static final def patternType = "**/*-types.properties"
     @Override
     void apply(Project project) {
         // Apply the base blitz plugin
@@ -27,7 +30,7 @@ class BlitzPlugin implements Plugin<Project> {
 
         project.blitz.omeXmlFiles = project.fileTree(
                 dir: "${project.buildDir}/mappings",
-                include: "**/*.ome.xml"
+                include: "${patternXml}"
         )
 
         configureDefaultCombinedDir(project)
@@ -101,7 +104,7 @@ class BlitzPlugin implements Plugin<Project> {
     CopySpec createImportMappingsSpec(Project project, FileTree artifactTree) {
         return project.copySpec {
             from artifactTree
-            include "**/*.ome.xml"
+            include patternXml
             includeEmptyDirs false
             // Flatten the hierarchy by setting the path
             // of all files to their respective basename
@@ -112,7 +115,7 @@ class BlitzPlugin implements Plugin<Project> {
     CopySpec createImportDatabaseTypesSpec(Project project, FileTree artifactTree) {
         return project.copySpec {
             from artifactTree
-            include "**/*-types.properties"
+            include patternType
             includeEmptyDirs false
             // Flatten the hierarchy by setting the path
             // of all files to their respective basename
