@@ -21,6 +21,12 @@ class SplitTask extends DefaultTask {
     public static final String DEFAULT_RESULT_NAME = "\$1I"
 
     /**
+     * Collection of .combined files to process
+     */
+    @InputFiles
+    FileCollection combined = project.files()
+
+    /**
      * List of the languages we want to split from .combined files
      */
     @Input
@@ -31,12 +37,6 @@ class SplitTask extends DefaultTask {
      */
     @OutputDirectory
     File outputDir
-
-    /**
-     * Collection of .combined files to process
-     */
-    @InputFiles
-    FileCollection combined
 
     /**
      * Optional rename params (from, to) that support
@@ -62,35 +62,31 @@ class SplitTask extends DefaultTask {
         this.language = lang
     }
 
-    /**
-     * Directory to spit out source files
-     * @param dir
-     * @return
-     */
-    void outputDir(File dir) {
-        this.outputDir = dir
-    }
-
-    /**
-     * Directory to spit out source files
-     * @param dir
-     * @return
-     */
-    void outputDir(String dir) {
-        this.outputDir = new File(dir)
-    }
-
-    /**
-     * Custom set method for concatenating FileCollections
-     * @param combinedFiles
-     */
-    void combined(FileCollection combinedFiles) {
-        if (this.combined) {
-            this.combined = this.combinedFiles + combinedFiles
-        } else {
-            this.combined = combinedFiles
-        }
-    }
+//    /**
+//     * Directory to spit out source files
+//     * @param dir
+//     * @return
+//     */
+//    void outputDir(File dir) {
+//        this.outputDir = dir
+//    }
+//
+//    /**
+//     * Directory to spit out source files
+//     * @param dir
+//     * @return
+//     */
+//    void outputDir(Object dir) {
+//        this.outputDir = project.file(dir)
+//    }
+//
+//    /**
+//     * Custom set method for concatenating FileCollections
+//     * @param combinedFiles
+//     */
+//    void combined(Object... files) {
+//        this.combined = this.combined + project.files(files)
+//    }
 
     void rename(Pattern sourceRegEx, String replaceWith) {
         this.rename(sourceRegEx.pattern(), replaceWith)

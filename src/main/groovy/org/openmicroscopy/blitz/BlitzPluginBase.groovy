@@ -47,14 +47,32 @@ class BlitzPluginBase implements Plugin<Project> {
                 task.group = GROUP
                 task.description = "Splits ${split.language} from .combined files"
                 task.combined = project.fileTree(
-                        dir: getDir(split.combinedDir, blitzExt.combinedDir),
+                        dir: handleFile(blitzExt.combinedDir, split.combinedDir),
                         include: '**/*.combined'
                 )
-                task.outputDir = getDir(split.outputDir, blitzExt.outputDir)
+                task.outputDir = handleFile(blitzExt.outputDir, split.outputDir)
                 task.language = split.language
                 task.replaceWith = split.outputName
             }
         }
+    }
+
+    File handleFile(File dslFile, File singleFile) {
+        if (!singleFile) {
+            return dslFile
+        }
+
+        if (singleFile.isFile() || !dslFile) {
+            return singleFile
+        }
+
+        if (dslFile.isFile()) {
+            return dslFile
+        }
+
+        // DSL file is not a file, but a path.
+        // Single file is also not a file or absolute so also a path
+        return new File(dslFile, "$singleFile")
     }
 
     File getDir(File expected, File fallback) {
