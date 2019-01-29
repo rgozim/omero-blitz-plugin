@@ -14,6 +14,7 @@ import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.TaskProvider
 import org.openmicroscopy.blitz.tasks.CombinedFileTask
+import org.openmicroscopy.dsl.DslPlugin
 import org.openmicroscopy.dsl.DslPluginBase
 import org.openmicroscopy.dsl.extensions.VelocityExtension
 import org.openmicroscopy.dsl.tasks.DslBaseTask
@@ -35,6 +36,10 @@ class BlitzPlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
+        if (project.plugins.withType(DslPlugin)) {
+            throw new GradleException("DSL plugin overrides Blitz conventions")
+        }
+
         // Apply the base dsl plugin, we set new conventions for it here.
         project.plugins.apply(DslPluginBase)
 
