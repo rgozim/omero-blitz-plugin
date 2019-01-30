@@ -1,39 +1,54 @@
 package org.openmicroscopy.blitz.extensions
 
 import org.gradle.api.GradleException
+import org.gradle.api.Project
+import org.gradle.api.file.FileCollection
 import org.openmicroscopy.blitz.Language
 
 import java.util.regex.Pattern
 
 class SplitExtension {
+
     final String name
+
+    final Project project
+
+    FileCollection combinedFiles
 
     Language language
 
     File outputDir
 
-    File combinedDir
-
     String outputName
 
-    void setLanguage(String languageString) {
-        Language lang = Language.find(languageString)
-        if (lang == null) {
-            throw new GradleException("Unsupported language: ${languageString}")
+    SplitExtension(String name, Project project) {
+        this.name = name
+        this.project = project
+        this.combinedFiles = project.files()
+
+        // Optionally set language based on name of extension
+        Language lang = Language.values().find { lang ->
+            name.toUpperCase().contains(lang.name())
         }
-        this.language = lang
+        if (lang) {
+            this.language = lang
+        }
     }
 
-    void setCombinedDir(String path) {
-        combinedDir = new File(path)
+    void combinedFiles(FileCollection files) {
+        setCombinedFiles(files)
     }
 
-    void setOutputDir(String path) {
-        outputDir = new File(path)
+    void combinedFiles(Object... files) {
+        setCombinedFiles(files)
     }
 
-    void setOutputName(String name) {
-        outputName = name
+    void setCombinedFiles(FileCollection files) {
+        this.combinedFiles = files
+    }
+
+    void setCombinedFiles(Object... files) {
+        this.combinedFiles = project.files(files)
     }
 
     void language(String language) {
@@ -41,15 +56,19 @@ class SplitExtension {
     }
 
     void language(Language lang) {
+        setLanguage(lang)
+    }
+
+    void setLanguage(Language lang) {
         language = lang
     }
 
-    void combinedDir(String path) {
-        setCombinedDir(path)
-    }
-
-    void combinedDir(File path) {
-        combinedDir = path
+    void setLanguage(String languageString) {
+        Language lang = Language.find(languageString)
+        if (lang == null) {
+            throw new GradleException("Unsupported language: ${languageString}")
+        }
+        this.language = lang
     }
 
     void outputDir(String dir) {
@@ -60,8 +79,16 @@ class SplitExtension {
         outputDir = dir
     }
 
+    void setOutputDir(String path) {
+        outputDir = new File(path)
+    }
+
     void outputName(String name) {
         setOutputName(name)
+    }
+
+    void setOutputName(String name) {
+        outputName = name
     }
 
     void rename(Pattern sourceRegEx, String replaceWith) {
@@ -78,13 +105,4 @@ class SplitExtension {
         )
     }
 
-    SplitExtension(String name) {
-        this.name = name
-        def lang = Language.values().find { lang ->
-            name.toUpperCase().contains(lang.name())
-        }
-        if (lang) {
-            this.language = lang
-        }
-    }
 }

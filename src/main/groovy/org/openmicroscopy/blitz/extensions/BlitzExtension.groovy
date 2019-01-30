@@ -1,38 +1,36 @@
 package org.openmicroscopy.blitz.extensions
 
+
+import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
+import org.openmicroscopy.dsl.extensions.CodeExtension
 import org.openmicroscopy.dsl.extensions.DslExtension
+import org.openmicroscopy.dsl.extensions.ResourceExtension
 
 class BlitzExtension extends DslExtension {
 
-    File combinedDir
+    File combinedOutputDir
 
     File template
 
-    String modelVersion
-
-    BlitzExtension(Project project) {
-        super(project)
+    BlitzExtension(Project project,
+                   NamedDomainObjectContainer<CodeExtension> code,
+                   NamedDomainObjectContainer<ResourceExtension> resource) {
+        super(project, code, resource)
+        this.api = api
     }
 
-    void combinedDir(Object dir) {
-        setCombinedDir(dir)
+
+    void template(File file) {
+        setTemplate(file)
     }
 
-    void setCombinedDir(Object dir) {
-        combinedDir = project.file(dir)
+    void setTemplate(String file) {
+        setTemplate(new File(file))
     }
 
-    void template(Object p) {
-        setTemplate(p)
-    }
-
-    void setTemplate(Object p) {
-        template = project.file(p)
-    }
-
-    void modelVersion(String version) {
-        modelVersion = version
+    void setTemplate(File file) {
+        this.template = file
     }
 
 }

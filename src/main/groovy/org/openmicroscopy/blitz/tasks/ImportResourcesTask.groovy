@@ -1,5 +1,6 @@
 package org.openmicroscopy.blitz.tasks
 
+import groovy.transform.CompileStatic
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.artifacts.Configuration
@@ -12,11 +13,13 @@ import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.util.PatternSet
 
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
+@CompileStatic
 class ImportResourcesTask extends DefaultTask {
 
     private static final String CONFIGURATION_NAME = 'omeroModelFiles'
@@ -36,9 +39,10 @@ class ImportResourcesTask extends DefaultTask {
             throw new GradleException('Can\'t find omero-model artifact')
         }
 
-        FileTree fileTree = project.zipTree(artifact.file).matching {
-            include includePattern
-        }
+        PatternSet patternSet = new PatternSet()
+        patternSet.include(includePattern)
+
+        FileTree fileTree = project.zipTree(artifact.file).matching(patternSet)
 
         fileTree.files.each { File src ->
             Path file = src.toPath()
@@ -49,20 +53,20 @@ class ImportResourcesTask extends DefaultTask {
         }
     }
 
-    void setExtractDir(Object dir) {
-        this.extractDir = project.file(dir)
-    }
-
     void extractDir(Object dir) {
         setExtractDir(dir)
     }
 
-    Collection<File> getResults() {
-        return extractDir.listFiles()
+    void setExtractDir(Object dir) {
+        this.extractDir = project.file(dir)
     }
 
-    ResolvedArtifact getOmeroModelArtifact() {
-        def artifact = project.plugins.hasPlugin(JavaPlugin) ?
+    List<File> getResults() {
+        return Arrays.asList(extractDir.listFiles())
+    }
+
+    private ResolvedArtifact getOmeroModelArtifact() {
+        ResolvedArtifact artifact = project.plugins.hasPlugin(JavaPlugin) ?
                 getOmeroModelFromCompileConfig() : null
 
         if (artifact) {
@@ -73,7 +77,9 @@ class ImportResourcesTask extends DefaultTask {
     }
 
     private ResolvedArtifact getOmeroModelFromCompileConfig() {
-        Set<Configuration> resolvableConfigs = project.configurations.findAll { it.canBeResolved }
+        Set<Configuration> resolvableConfigs = project.configurations.findAll { Configuration c ->
+            c.canBeResolved
+        }
         List<ResolvedArtifact> artifacts = resolvableConfigs.collect { Configuration config ->
             config.resolvedConfiguration.resolvedArtifacts.find { item ->
                 item.name.contains("omero-model")
@@ -82,7 +88,7 @@ class ImportResourcesTask extends DefaultTask {
         return artifacts[0]
     }
 
-    ResolvedArtifact getOmeroModelWithCustomConfig() {
+    private ResolvedArtifact getOmeroModelWithCustomConfig() {
         def config = project.configurations.findByName(CONFIGURATION_NAME)
         if (!config) {
             config = project.configurations.create(CONFIGURATION_NAME)

@@ -1,8 +1,10 @@
 package org.openmicroscopy.blitz.tasks
 
+import groovy.transform.CompileStatic
 import org.apache.commons.io.FilenameUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.file.CopySpec
 import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.file.copy.RegExpNameMapper
 import org.gradle.api.tasks.Input
@@ -15,19 +17,21 @@ import org.openmicroscopy.blitz.Prefix
 
 import java.util.regex.Pattern
 
+@CompileStatic
 class SplitTask extends DefaultTask {
 
-    public static final String DEFAULT_SOURCE_NAME = "(.*?)I[.]combined"
+    public static final String DEFAULT_SOURCE_NAME = "(.*?)I[.]combinedFiles"
+
     public static final String DEFAULT_RESULT_NAME = "\$1I"
 
     /**
-     * Collection of .combined files to process
+     * Collection of .combinedFiles files to process
      */
     @InputFiles
-    FileCollection combined = project.files()
+    FileCollection combinedFiles = project.files()
 
     /**
-     * List of the languages we want to split from .combined files
+     * List of the languages we want to split from .combinedFiles files
      */
     @Input
     Language language
@@ -46,60 +50,6 @@ class SplitTask extends DefaultTask {
     @Input
     Tuple2<String, String> renameParams
 
-    void setLanguage(String language) {
-        Language lang = Language.find(language)
-        if (lang == null) {
-            throw new GradleException("Unsupported language : ${language}")
-        }
-        this.language = lang
-    }
-
-    void language(String language) {
-        setLanguage(language)
-    }
-
-    void language(Language lang) {
-        this.language = lang
-    }
-
-//    /**
-//     * Directory to spit out source files
-//     * @param dir
-//     * @return
-//     */
-//    void outputDir(File dir) {
-//        this.outputDir = dir
-//    }
-//
-//    /**
-//     * Directory to spit out source files
-//     * @param dir
-//     * @return
-//     */
-//    void outputDir(Object dir) {
-//        this.outputDir = project.file(dir)
-//    }
-//
-//    /**
-//     * Custom set method for concatenating FileCollections
-//     * @param combinedFiles
-//     */
-//    void combined(Object... files) {
-//        this.combined = this.combined + project.files(files)
-//    }
-
-    void rename(Pattern sourceRegEx, String replaceWith) {
-        this.rename(sourceRegEx.pattern(), replaceWith)
-    }
-
-    void rename(String sourceRegEx, String replaceWith) {
-        this.renameParams = new Tuple2<>(sourceRegEx, replaceWith)
-    }
-
-    void setReplaceWith(String replaceWith) {
-        this.rename(DEFAULT_SOURCE_NAME, replaceWith)
-    }
-
     @TaskAction
     void action() {
         language.prefixes.each { Prefix prefix ->
@@ -116,8 +66,8 @@ class SplitTask extends DefaultTask {
                 nameTransformer = tupleToNameTransformer(prefix)
             }
 
-            project.copy { c ->
-                c.from combined
+            project.copy { CopySpec c ->
+                c.from combinedFiles
                 c.into outputDir
                 c.rename nameTransformer
                 c.filter { String line -> filerLine(line, prefixName) }
@@ -125,7 +75,47 @@ class SplitTask extends DefaultTask {
         }
     }
 
-    def tupleToNameTransformer(Prefix prefix) {
+    void language(Language lang) {
+        setLanguage(lang)
+    }
+
+    void language(String language) {
+        setLanguage(language)
+    }
+
+    void setLanguage(Language lang) {
+        this.language = lang
+    }
+
+    void setLanguage(String language) {
+        Language lang = Language.find(language)
+        if (lang == null) {
+            throw new GradleException("Unsupported language : ${language}")
+        }
+        this.language = lang
+    }
+
+    void outputDir(Object dir) {
+        setOutputDir(dir)
+    }
+
+    void setOutputDir(Object dir) {
+        this.outputDir = project.file(dir)
+    }
+
+    void rename(Pattern sourceRegEx, String replaceWith) {
+        this.rename(sourceRegEx.pattern(), replaceWith)
+    }
+
+    void rename(String sourceRegEx, String replaceWith) {
+        this.renameParams = new Tuple2<>(sourceRegEx, replaceWith)
+    }
+
+    void setReplaceWith(String replaceWith) {
+        this.rename(DEFAULT_SOURCE_NAME, replaceWith)
+    }
+
+    private RegExpNameMapper tupleToNameTransformer(Prefix prefix) {
         def first = renameParams.getFirst()
         if (textIsNullOrEmpty(first)) {
             first = DEFAULT_SOURCE_NAME
@@ -141,11 +131,11 @@ class SplitTask extends DefaultTask {
         return new RegExpNameMapper(first, second)
     }
 
-    static def textIsNullOrEmpty(String text) {
+    private static String textIsNullOrEmpty(String text) {
         return !text?.trim()
     }
 
-    static def formatSecond(Prefix prefix, String second) {
+    private static String formatSecond(Prefix prefix, String second) {
         final int index = FilenameUtils.indexOfExtension(second)
         if (index == -1) {
             return "${second}.${prefix.extension}"
@@ -154,7 +144,7 @@ class SplitTask extends DefaultTask {
         }
     }
 
-    static def filerLine(String line, String prefix) {
+    private static def filerLine(String line, String prefix) {
         return line.matches("^\\[all](.*)|^\\[${prefix}](.*)") ?
                 line.replaceAll("^\\[all]\\s?|^\\[${prefix}]\\s?", "") :
                 null

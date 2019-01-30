@@ -1,6 +1,6 @@
 package org.openmicroscopy.blitz
 /**
- * File extension each prefix in .combined corresponds to
+ * File extension each prefix in .combinedFiles corresponds to
  */
 enum Prefix {
     HDR ('h'),

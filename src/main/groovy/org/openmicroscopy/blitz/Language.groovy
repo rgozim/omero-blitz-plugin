@@ -1,14 +1,18 @@
 package org.openmicroscopy.blitz
+
+import groovy.transform.CompileStatic
+
 /**
  * List of supported languages by blitz code generation
  */
+@CompileStatic
 enum Language {
     CPP(Prefix.HDR, Prefix.CPP),
     JAVA(Prefix.JAV),
     PYTHON(Prefix.PYC),
     ICE(Prefix.ICE)
 
-    static def find(String language) {
+    static Language find(String language) {
         String lang = language.trim().toUpperCase()
         for (Language sl : values()) {
             if (sl.name() == lang) {
