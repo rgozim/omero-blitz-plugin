@@ -30,7 +30,9 @@ class ImportResourcesTask extends DefaultTask {
     File extractDir
 
     @Input
-    String includePattern
+    String pattern
+
+    PatternSet patternSet = new PatternSet()
 
     @TaskAction
     void apply() {
@@ -39,11 +41,13 @@ class ImportResourcesTask extends DefaultTask {
             throw new GradleException('Can\'t find omero-model artifact')
         }
 
-        PatternSet patternSet = new PatternSet()
-        patternSet.include(includePattern)
+        // Set our pattern set
+        patternSet.include(pattern)
 
+        // obtain file tree for jar file
         FileTree fileTree = project.zipTree(artifact.file).matching(patternSet)
 
+        // Copy each file matching pattern to our extract directory
         fileTree.files.each { File src ->
             Path file = src.toPath()
             Path to = extractDir.toPath()

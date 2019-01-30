@@ -37,7 +37,7 @@ plugins {
 
 ### Blitz Plugin Methods
 
-Use the api block to configure the generation of API files with `org.openmicroscopy.blitz.tasks.SplitTask`. 
+Use the api block to configure the generation of API files with `org.openmicroscopy.api.tasks.SplitTask`. 
 The API block can contain one or more split tasks, each with its own chosen language for generating API files. 
 
 ```groovy

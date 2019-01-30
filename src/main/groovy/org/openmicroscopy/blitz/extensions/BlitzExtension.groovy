@@ -17,9 +17,19 @@ class BlitzExtension extends DslExtension {
                    NamedDomainObjectContainer<CodeExtension> code,
                    NamedDomainObjectContainer<ResourceExtension> resource) {
         super(project, code, resource)
-        this.api = api
     }
 
+    void combinedOutputDir(File dir) {
+        setCombinedOutputDir(dir)
+    }
+
+    void setCombinedOutputDir(String dir) {
+        setCombinedOutputDir(new File(dir))
+    }
+
+    void setCombinedOutputDir(File dir) {
+        this.combinedOutputDir = dir
+    }
 
     void template(File file) {
         setTemplate(file)
