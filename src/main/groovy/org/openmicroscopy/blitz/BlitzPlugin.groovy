@@ -14,7 +14,6 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
-import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskProvider
@@ -156,29 +155,20 @@ class BlitzPlugin implements Plugin<Project> {
 
 
     static TaskProvider<DslMultiFileTask> registerCombinedTask(Project project, BlitzExtension blitz) {
-        def generateCombinedFiles = project.tasks.register("generateCombinedFiles", DslMultiFileTask)
-        project.afterEvaluate {
-            TaskProvider<Sync> importMappings = project.tasks.named("importMappings") as TaskProvider<Sync>
-            def importDatabaseTypes = project.tasks.getByName("importDatabaseTypes")
-
-            generateCombinedFiles.configure(new Action<DslMultiFileTask>() {
-                @Override
-                void execute(DslMultiFileTask t) {
-//                t.dependsOn project.tasks.named("importMappings"),
-//                        project.tasks.named("importDatabaseTypes")
-                    t.omeXmlFiles = project.files(importMappings.get().outputs.files)
-                    t.databaseTypes = project.files(importDatabaseTypes)
-                    t.template = DslPluginBase.getFileInCollection(blitz.templates, blitz.template)
-                    t.outputDir = blitz.combinedOutputDir
-                    t.databaseType = blitz.databaseType
-                    t.formatOutput = { SemanticType st -> "${st.getShortname()}I.combinedFiles" }
-                    t.velocityProperties = new VelocityExtension(project).data.get()
-                    t.group = GROUP
-                    t.description = "Processes combinedFiles.vm and generates .combinedFiles files"
-                }
-            })
-        }
-        return generateCombinedFiles
+        return project.tasks.register("generateCombinedFiles", DslMultiFileTask, new Action<DslMultiFileTask>() {
+            @Override
+            void execute(DslMultiFileTask t) {
+                t.omeXmlFiles = project.tasks.named("importMappings")
+                t.databaseTypes = project.tasks.getByName("importDatabaseTypes")
+                t.template = DslPluginBase.getFileInCollection(blitz.templates, blitz.template)
+                t.outputDir = blitz.combinedOutputDir
+                t.databaseType = blitz.databaseType
+                t.formatOutput = { SemanticType st -> "${st.getShortname()}I.combinedFiles" }
+                t.velocityProperties = new VelocityExtension(project).data.get()
+                t.group = GROUP
+                t.description = "Processes combinedFiles.vm and generates .combinedFiles files"
+            }
+        })
     }
 
     private static void configureForApiPlugin(Project project) {
