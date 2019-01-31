@@ -19,6 +19,10 @@ class BlitzExtension extends DslExtension {
         super(project, code, resource)
     }
 
+    void combinedOutputDir(String dir) {
+        setCombinedOutputDir(dir)
+    }
+
     void combinedOutputDir(File dir) {
         setCombinedOutputDir(dir)
     }
@@ -29,6 +33,10 @@ class BlitzExtension extends DslExtension {
 
     void setCombinedOutputDir(File dir) {
         this.combinedOutputDir = dir
+    }
+
+    void template(String file) {
+        setTemplate(file)
     }
 
     void template(File file) {

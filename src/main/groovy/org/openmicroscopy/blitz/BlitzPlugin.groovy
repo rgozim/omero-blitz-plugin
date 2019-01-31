@@ -11,6 +11,7 @@ import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.SourceSet
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.compile.JavaCompile
 import org.openmicroscopy.api.ApiPlugin
 import org.openmicroscopy.api.tasks.SplitTask
@@ -27,12 +28,14 @@ import org.openmicroscopy.dsl.factories.ResourceFactory
 import org.openmicroscopy.dsl.tasks.DslBaseTask
 import org.openmicroscopy.dsl.tasks.DslMultiFileTask
 
+
 @CompileStatic
 class BlitzPlugin implements Plugin<Project> {
 
+    public static final String GROUP = "omero-blitz"
+
     private static final Logger Log = Logging.getLogger(BlitzPlugin)
 
-    public static final String GROUP = "omero-blitz"
 
     @Override
     void apply(Project project) {
@@ -45,6 +48,8 @@ class BlitzPlugin implements Plugin<Project> {
 
         // Create an inner dsl like syntax for blitz {}
         DslPluginBase.configure(project, blitz)
+
+        registerImportTasks(project)
 
         // ApiPluginBase. ((ExtensionAware) blitz).extensions
 
@@ -72,45 +77,10 @@ class BlitzPlugin implements Plugin<Project> {
         blitz.combinedOutputDir = "${project.buildDir}/combined"
 
         blitz.omeXmlFiles = project.fileTree(dir: "${project.buildDir}/mappings",
-                include: FileTypes.PATTERN_OME_XML)
+                include: "$FileTypes.PATTERN_OME_XML")
 
         blitz.databaseTypes = project.fileTree(dir: "${project.buildDir}/properties",
-                include: FileTypes.PATTERN_DB_TYPE)
-
-        project.tasks.register("importMappings", ImportResourcesTask, new Action<ImportResourcesTask>() {
-            @Override
-            void execute(ImportResourcesTask t) {
-                t.group = GROUP
-                t.extractDir = "$project.buildDir/mappings"
-                t.pattern = FileTypes.PATTERN_OME_XML
-            }
-        })
-
-        project.tasks.register("importDatabaseTypes", ImportResourcesTask, new Action<ImportResourcesTask>() {
-            @Override
-            void execute(ImportResourcesTask t) {
-                t.group = GROUP
-                t.extractDir = "$project.buildDir/properties"
-                t.pattern = FileTypes.PATTERN_DB_TYPE
-            }
-        })
-
-        project.tasks.register("generateCombinedFiles", DslMultiFileTask, new Action<DslMultiFileTask>() {
-            @Override
-            void execute(DslMultiFileTask t) {
-                t.dependsOn project.tasks.named("importMappings"),
-                        project.tasks.named("importDatabaseTypes")
-                t.group = GROUP
-                t.description = "Processes combinedFiles.vm and generates .combinedFiles files"
-                t.template = DslPluginBase.getFileInCollection(blitz.templates, blitz.template)
-                t.omeXmlFiles = blitz.omeXmlFiles
-                t.databaseTypes = blitz.databaseTypes
-                t.outputDir = blitz.combinedOutputDir
-                t.databaseType = blitz.databaseType
-                t.formatOutput = { SemanticType st -> "${st.getShortname()}I.combinedFiles" }
-                t.velocityProperties = new VelocityExtension(project).data.get()
-            }
-        })
+                include: "$FileTypes.PATTERN_DB_TYPE")
 
         // Set any DSL tasks to depend on import tasks
         project.tasks.withType(DslBaseTask).configureEach(new Action<DslBaseTask>() {
@@ -127,6 +97,48 @@ class BlitzPlugin implements Plugin<Project> {
                 jc.dependsOn project.tasks.withType(DslBaseTask)
             }
         }
+    }
+
+    static List<TaskProvider<ImportResourcesTask>> registerImportTasks(Project project) {
+        def importMappings =
+                project.tasks.register("importMappings", ImportResourcesTask, new Action<ImportResourcesTask>() {
+            @Override
+            void execute(ImportResourcesTask t) {
+                t.group = GROUP
+                t.extractDir = "$project.buildDir/mappings"
+                t.pattern = FileTypes.PATTERN_OME_XML
+            }
+        })
+
+        def importDatabaseTypes =
+                project.tasks.register("importDatabaseTypes", ImportResourcesTask, new Action<ImportResourcesTask>() {
+            @Override
+            void execute(ImportResourcesTask t) {
+                t.group = GROUP
+                t.extractDir = "$project.buildDir/properties"
+                t.pattern = FileTypes.PATTERN_DB_TYPE
+            }
+        })
+        return [importMappings, importDatabaseTypes]
+    }
+
+    static TaskProvider<DslMultiFileTask> registerCombinedTask(Project project, BlitzExtension blitz) {
+        return project.tasks.register("generateCombinedFiles", DslMultiFileTask, new Action<DslMultiFileTask>() {
+            @Override
+            void execute(DslMultiFileTask t) {
+                t.dependsOn project.tasks.named("importMappings"),
+                        project.tasks.named("importDatabaseTypes")
+                t.group = GROUP
+                t.description = "Processes combinedFiles.vm and generates .combinedFiles files"
+                t.template = DslPluginBase.getFileInCollection(blitz.templates, blitz.template)
+                t.omeXmlFiles = blitz.omeXmlFiles
+                t.databaseTypes = blitz.databaseTypes
+                t.outputDir = blitz.combinedOutputDir
+                t.databaseType = blitz.databaseType
+                t.formatOutput = { SemanticType st -> "${st.getShortname()}I.combinedFiles" }
+                t.velocityProperties = new VelocityExtension(project).data.get()
+            }
+        })
     }
 
     private static void configureForApiPlugin(Project project) {
