@@ -7,11 +7,11 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.openmicroscopy.blitz.extensions.BlitzExtension
 import org.openmicroscopy.dsl.DslPluginBase
-import org.openmicroscopy.dsl.extensions.FileGeneratorExtension
-import org.openmicroscopy.dsl.extensions.FilesGeneratorExtension
+import org.openmicroscopy.dsl.extensions.MultiFileGeneratorExtension
+import org.openmicroscopy.dsl.extensions.SingleFileGeneratorExtension
 import org.openmicroscopy.dsl.extensions.VelocityExtension
-import org.openmicroscopy.dsl.factories.FileGeneratorExtFactory
-import org.openmicroscopy.dsl.factories.FilesGeneratorExtFactory
+import org.openmicroscopy.dsl.factories.MultiFileGeneratorFactory
+import org.openmicroscopy.dsl.factories.SingleFileGeneratorFactory
 import org.openmicroscopy.dsl.tasks.FilesGeneratorTask
 
 class BlitzPluginBase implements Plugin<Project> {
@@ -27,36 +27,39 @@ class BlitzPluginBase implements Plugin<Project> {
         // of dsl {}
         DslPluginBase.configure(project, blitz)
 
+        // We need this extension
+        VelocityExtension velocity = project.extensions.getByType(VelocityExtension)
+
         // Configure blitz
-        configure(project, blitz)
+        configure(project, blitz, velocity)
     }
 
     @SuppressWarnings("GrMethodMayBeStatic")
     BlitzExtension createBaseExtension(Project project) {
-        def code = project.container(FilesGeneratorExtension, new FilesGeneratorExtFactory(project))
-        def resource = project.container(FileGeneratorExtension, new FileGeneratorExtFactory(project))
+        def code = project.container(MultiFileGeneratorExtension, new MultiFileGeneratorFactory(project))
+        def resource = project.container(SingleFileGeneratorExtension, new SingleFileGeneratorFactory(project))
 
         // Create the dsl extension
         return project.extensions.create('blitz', BlitzExtension, project, code, resource)
     }
 
-    static void configure(Project project, BlitzExtension blitz) {
-        registerCombinedTask(project, blitz)
+    static void configure(Project project, BlitzExtension blitz, VelocityExtension velocity) {
+        registerCombinedTask(project, blitz, velocity)
     }
 
-    static TaskProvider<FilesGeneratorTask> registerCombinedTask(Project project, BlitzExtension blitz) {
+    static TaskProvider<FilesGeneratorTask> registerCombinedTask(Project project, BlitzExtension blitz,
+                                                                 VelocityExtension velocity) {
         return project.tasks.register("generateCombinedFiles", FilesGeneratorTask, new Action<FilesGeneratorTask>() {
             @Override
             void execute(FilesGeneratorTask t) {
+                t.group = DslPluginBase.GROUP
+                t.description = "Generates .combined files"
+                t.velocityProperties = velocity.data.get()
                 t.omeXmlFiles = blitz.omeXmlFiles
-                t.databaseTypes = blitz.databaseTypes
-                t.databaseType = blitz.databaseType
-                t.outputDir = blitz.combinedOutputDir
-                t.template = DslPluginBase.getFileInCollection(blitz.templates, blitz.template)
+                t.outputDir = blitz.combined.outputDir
+                t.template = DslPluginBase.findFileInCollection(blitz.templates, blitz.combined.template)
+                t.databaseType = DslPluginBase.findDatabaseType(blitz.databaseTypes, blitz.database)
                 t.formatOutput = { SemanticType st -> "${st.getShortname()}I.combinedFiles" }
-                t.velocityProperties = new VelocityExtension(project).data.get()
-                t.description = "Processes combinedFiles.vm and generates .combinedFiles files"
-                t.group = GROUP
             }
         })
     }

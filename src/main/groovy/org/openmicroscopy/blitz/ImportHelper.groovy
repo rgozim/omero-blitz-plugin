@@ -11,7 +11,7 @@ class ImportHelper {
 
     private static final String CONFIGURATION_NAME = "omeroModelFiles"
 
-    final Project project
+    private final Project project
 
     ImportHelper(Project project) {
         this.project = project

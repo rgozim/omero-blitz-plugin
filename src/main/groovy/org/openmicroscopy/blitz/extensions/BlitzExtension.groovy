@@ -4,17 +4,19 @@ import org.gradle.api.Action
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
-import org.openmicroscopy.dsl.extensions.FileGeneratorExtension
-import org.openmicroscopy.dsl.extensions.FilesGeneratorExtension
-import org.openmicroscopy.dsl.extensions.specs.DslExtension
+import org.openmicroscopy.dsl.extensions.MultiFileGeneratorExtension
+import org.openmicroscopy.dsl.extensions.SingleFileGeneratorExtension
+import org.openmicroscopy.dsl.extensions.specs.DslSpec
 
-class BlitzExtension implements DslExtension {
+class BlitzExtension implements DslSpec {
 
-    final Project project
+    private final Project project
 
-    final NamedDomainObjectContainer<FilesGeneratorExtension> files
+    final NamedDomainObjectContainer<MultiFileGeneratorExtension> multiFile
 
-    final NamedDomainObjectContainer<FileGeneratorExtension> file
+    final NamedDomainObjectContainer<SingleFileGeneratorExtension> singleFile
+
+    final CombinedConfig combined = new CombinedConfig()
 
     FileCollection omeXmlFiles
 
@@ -22,31 +24,51 @@ class BlitzExtension implements DslExtension {
 
     FileCollection templates
 
-    String databaseType
+    String database
 
     File outputDir
 
-    File combinedOutputDir
-
-    File template
-
     BlitzExtension(Project project,
-                   NamedDomainObjectContainer<FilesGeneratorExtension> files,
-                   NamedDomainObjectContainer<FileGeneratorExtension> file) {
+                   NamedDomainObjectContainer<MultiFileGeneratorExtension> multiFile,
+                   NamedDomainObjectContainer<SingleFileGeneratorExtension> singleFile) {
         this.project = project
-        this.files = files
-        this.file = file
+        this.multiFile = multiFile
+        this.singleFile = singleFile
         this.omeXmlFiles = project.files()
         this.databaseTypes = project.files()
         this.templates = project.files()
     }
 
-    void files(Action<? super NamedDomainObjectContainer<FilesGeneratorExtension>> action) {
-        action.execute(files)
+    void multiFile(Action<? super NamedDomainObjectContainer<MultiFileGeneratorExtension>> action) {
+        action.execute(multiFile)
     }
 
-    void file(Action<? super NamedDomainObjectContainer<FileGeneratorExtension>> action) {
-        action.execute(file)
+    void singleFile(Action<? super NamedDomainObjectContainer<SingleFileGeneratorExtension>> action) {
+        action.execute(singleFile)
+    }
+
+    void omeXmlFiles(FileCollection files) {
+        setOmeXmlFiles(files)
+    }
+
+    void setOmeXmlFiles(FileCollection files) {
+        this.omeXmlFiles = files
+    }
+
+    void templates(FileCollection files) {
+        setTemplates(files)
+    }
+
+    void setTemplates(FileCollection files) {
+        this.templates = files
+    }
+
+    void databaseTypes(FileCollection files) {
+        setDatabaseTypes(files)
+    }
+
+    void setDatabaseTypes(FileCollection files) {
+        this.databaseTypes = files
     }
 
     void outputDir(Object dir) {
@@ -55,30 +77,6 @@ class BlitzExtension implements DslExtension {
 
     void setOutputDir(Object dir) {
         this.outputDir = project.file(dir)
-    }
-
-    void combinedOutputDir(Object dir) {
-        setCombinedOutputDir(dir)
-    }
-
-    void setCombinedOutputDir(Object dir) {
-        this.combinedOutputDir = project.file(dir)
-    }
-
-    void template(String template) {
-        setTemplate(template)
-    }
-
-    void template(File file) {
-        setTemplate(file)
-    }
-
-    void setTemplate(String file) {
-        setTemplate(new File(file))
-    }
-
-    void setTemplate(File file) {
-        this.template = file
     }
 
 }
