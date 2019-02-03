@@ -4,6 +4,8 @@ import ome.dsl.SemanticType
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.plugins.ExtensionAware
+import org.gradle.api.plugins.ExtensionContainer
 import org.gradle.api.tasks.TaskProvider
 import org.openmicroscopy.blitz.extensions.BlitzExtension
 import org.openmicroscopy.dsl.DslPluginBase
@@ -14,24 +16,25 @@ import org.openmicroscopy.dsl.factories.MultiFileGeneratorFactory
 import org.openmicroscopy.dsl.factories.SingleFileGeneratorFactory
 import org.openmicroscopy.dsl.tasks.FilesGeneratorTask
 
+
 class BlitzPluginBase implements Plugin<Project> {
 
-    public static final String GROUP = "omero-blitz"
+    static final String GROUP = "omero-blitz"
+    static final String EXTENSION_NAME_BLITZ = "blitz"
+    static final String TASK_GENERATE_COMBINED_FILES = "generateCombinedFiles"
 
     @Override
     void apply(Project project) {
         // BlitzExtension
         BlitzExtension blitz = createBaseExtension(project)
+        VelocityExtension velocity = DslPluginBase.createVelocityExtension(project, blitz)
 
         // Create an inner dsl like syntax for blitz {}. Blitz is an extension
         // of dsl {}
-        DslPluginBase.configure(project, blitz)
-
-        // We need this extension
-        VelocityExtension velocity = project.extensions.getByType(VelocityExtension)
+        DslPluginBase.configure(project, blitz, velocity)
 
         // Configure blitz
-        configure(project, blitz, velocity)
+        registerCombinedTask(project, blitz, velocity)
     }
 
     @SuppressWarnings("GrMethodMayBeStatic")
@@ -40,16 +43,13 @@ class BlitzPluginBase implements Plugin<Project> {
         def resource = project.container(SingleFileGeneratorExtension, new SingleFileGeneratorFactory(project))
 
         // Create the dsl extension
-        return project.extensions.create('blitz', BlitzExtension, project, code, resource)
-    }
-
-    static void configure(Project project, BlitzExtension blitz, VelocityExtension velocity) {
-        registerCombinedTask(project, blitz, velocity)
+        return project.extensions.create(EXTENSION_NAME_BLITZ, BlitzExtension, project, code, resource)
     }
 
     static TaskProvider<FilesGeneratorTask> registerCombinedTask(Project project, BlitzExtension blitz,
                                                                  VelocityExtension velocity) {
-        return project.tasks.register("generateCombinedFiles", FilesGeneratorTask, new Action<FilesGeneratorTask>() {
+        return project.tasks.register(
+                TASK_GENERATE_COMBINED_FILES, FilesGeneratorTask, new Action<FilesGeneratorTask>() {
             @Override
             void execute(FilesGeneratorTask t) {
                 t.group = DslPluginBase.GROUP
@@ -62,6 +62,18 @@ class BlitzPluginBase implements Plugin<Project> {
                 t.formatOutput = { SemanticType st -> "${st.getShortname()}I.combinedFiles" }
             }
         })
+    }
+
+    static BlitzExtension getBlitzExtension(ExtensionContainer extensions) {
+        return extensions.getByType(BlitzExtension)
+    }
+
+    static VelocityExtension getVelocityExtension(Project project) {
+        return getVelocityExtension(getBlitzExtension(project.extensions))
+    }
+
+    static VelocityExtension getVelocityExtension(BlitzExtension blitz) {
+        return ((ExtensionAware) blitz).extensions.getByType(VelocityExtension)
     }
 
 }

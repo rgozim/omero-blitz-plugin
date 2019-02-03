@@ -47,6 +47,10 @@ class BlitzExtension implements DslSpec {
         action.execute(singleFile)
     }
 
+    void customData(Action<? super CombinedConfig> action) {
+        action.execute(combined)
+    }
+
     void omeXmlFiles(FileCollection files) {
         setOmeXmlFiles(files)
     }
