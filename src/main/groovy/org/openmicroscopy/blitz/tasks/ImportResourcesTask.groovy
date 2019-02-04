@@ -3,15 +3,16 @@ package org.openmicroscopy.blitz.tasks
 import groovy.transform.CompileStatic
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.util.PatternSet
-import org.openmicroscopy.blitz.ImportHelper
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -22,6 +23,9 @@ class ImportResourcesTask extends DefaultTask {
 
     private static final Logger Log = Logging.getLogger(ImportResourcesTask)
 
+    @InputFiles
+    Configuration config
+
     @OutputDirectory
     File extractDir
 
@@ -30,14 +34,19 @@ class ImportResourcesTask extends DefaultTask {
 
     PatternSet patternSet = new PatternSet()
 
-    ImportHelper importHelper = new ImportHelper(project)
-
     @TaskAction
     void apply() {
-        ResolvedArtifact artifact = importHelper.getOmeroModelArtifact()
-        if (!artifact) {
-            throw new GradleException('Can\'t find omero-model artifact')
+        ResolvedArtifact artifact = config.resolvedConfiguration.resolvedArtifacts.find {
+            it.name.contains("omero-model")
         }
+        if (!artifact) {
+            throw new GradleException("omero-model artifact not found")
+        }
+
+//        ResolvedArtifact artifact = ImportHelper.getOmeroModelArtifact(project)
+//        if (!artifact) {
+//            throw new GradleException('Can\'t find omero-model artifact')
+//        }
 
         // Set our pattern set
         patternSet.include(pattern)
