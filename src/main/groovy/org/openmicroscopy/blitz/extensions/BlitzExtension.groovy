@@ -20,8 +20,6 @@ class BlitzExtension implements DslSpec {
 
     final NamedDomainObjectContainer<SingleFileGeneratorExtension> singleFile
 
-    final CombinedConfig combined = new CombinedConfig(project)
-
     final ConfigurableFileCollection omeXmlFiles
 
     final ConfigurableFileCollection databaseTypes
@@ -47,8 +45,6 @@ class BlitzExtension implements DslSpec {
         // Set some conventions
         this.outputDir.convention(project.layout.projectDirectory.dir("src/generated"))
         this.database.convention("psql")
-        this.combined.outputDir.convention(new File("$project.buildDir/combined"))
-        this.combined.template.convention("combined.vm")
     }
 
     void multiFile(Action<? super NamedDomainObjectContainer<MultiFileGeneratorExtension>> action) {
