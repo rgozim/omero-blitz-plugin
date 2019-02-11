@@ -43,11 +43,6 @@ class ImportResourcesTask extends DefaultTask {
             throw new GradleException("omero-model artifact not found")
         }
 
-//        ResolvedArtifact artifact = ImportHelper.getOmeroModelArtifact(project)
-//        if (!artifact) {
-//            throw new GradleException('Can\'t find omero-model artifact')
-//        }
-
         // Set our pattern set
         patternSet.include(pattern)
 
