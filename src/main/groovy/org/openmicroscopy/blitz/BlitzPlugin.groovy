@@ -1,6 +1,5 @@
 package org.openmicroscopy.blitz
 
-import groovy.transform.CompileStatic
 import ome.dsl.SemanticType
 import org.gradle.api.Action
 import org.gradle.api.GradleException
@@ -18,7 +17,6 @@ import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskProvider
 import org.openmicroscopy.api.ApiPlugin
 import org.openmicroscopy.api.extensions.ApiExtension
-import org.openmicroscopy.api.tasks.SplitTask
 import org.openmicroscopy.dsl.DslPlugin
 import org.openmicroscopy.dsl.extensions.BaseFileConfig
 import org.openmicroscopy.dsl.extensions.DslExtension
@@ -29,7 +27,6 @@ import static org.openmicroscopy.dsl.DslPluginBase.findDatabaseType
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_DB_TYPE
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_OME_XML
 
-@CompileStatic
 class BlitzPlugin implements Plugin<Project> {
 
     private static final Logger Log = Logging.getLogger(BlitzPlugin)
@@ -63,7 +60,7 @@ class BlitzPlugin implements Plugin<Project> {
         dsl.multiFile.add(createGenerateCombinedFilesConfig(project, dsl))
 
         createEvaluateDslInputsTask(project, dsl)
-        configureForApiPlugin(project,dsl)
+        configureForApiPlugin(project, dsl)
         configureForJavaPlugin(project)
 
         project.tasks.withType(GeneratorBaseTask).configureEach { task ->
@@ -96,8 +93,8 @@ class BlitzPlugin implements Plugin<Project> {
                         project.tasks.named(entry.key, GeneratorBaseTask).configure(new Action<GeneratorBaseTask>() {
                             @Override
                             void execute(GeneratorBaseTask t) {
-                                t.omeXmlFiles = importedFiles
-                                t.databaseType = findDatabaseType(importedFiles, dsl.database.get())
+                                t.mappingFiles.from(importedFiles)
+                                t.databaseType.set(findDatabaseType(importedFiles, dsl.database.get()))
                             }
                         })
                     }
@@ -131,18 +128,29 @@ class BlitzPlugin implements Plugin<Project> {
     void configureForApiPlugin(Project project, DslExtension dsl) {
         project.plugins.withType(ApiPlugin) { ApiPlugin plugin ->
             // Set output dir of API to equal DSL
-            ApiExtension api = project.extensions.<ApiExtension>getByType(ApiExtension)
+            ApiExtension api = project.extensions.getByType(ApiExtension) as ApiExtension
             api.outputDir = dsl.outputDir
+            api.combinedFiles.setFrom(project.fileTree(
+                    dir: "${project.buildDir}/${dsl.database.get()}/combined",
+                    include: "**/*.combined"
+            ))
 
-            project.tasks.withType(SplitTask).configureEach(new Action<SplitTask>() {
-                @Override
-                void execute(SplitTask t) {
-                    def combinedFilesExt = fileGeneratorConfigMap.find {
-                        it.key.toLowerCase().contains("combined")
-                    }
-                    t.combinedFiles.setFrom( project.tasks.named(combinedFilesExt.key) )
+            /*project.tasks.register("evaluateApiInputs") { Task task ->
+                def combinedFilesExt = fileGeneratorConfigMap.find {
+                    it.key.toLowerCase().contains("combined")
                 }
-            })
+                def generateCombined = project.tasks.named(combinedFilesExt.key)
+
+                task.dependsOn
+                task.doLast {
+                    project.tasks.withType(SplitTask).configureEach(new Action<SplitTask>() {
+                        @Override
+                        void execute(SplitTask t) {
+                            t.source = generateCombined
+                        }
+                    })
+                }
+            }*/
         }
     }
 
