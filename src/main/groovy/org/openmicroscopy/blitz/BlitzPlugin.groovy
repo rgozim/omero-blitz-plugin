@@ -2,28 +2,29 @@ package org.openmicroscopy.blitz
 
 import ome.dsl.SemanticType
 import org.gradle.api.Action
-import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.Task
-import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.CopySpec
-import org.gradle.api.file.FileCollection
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskProvider
 import org.openmicroscopy.api.ApiPlugin
 import org.openmicroscopy.api.extensions.ApiExtension
+import org.openmicroscopy.api.tasks.SplitTask
 import org.openmicroscopy.dsl.DslPlugin
 import org.openmicroscopy.dsl.extensions.BaseFileConfig
 import org.openmicroscopy.dsl.extensions.DslExtension
 import org.openmicroscopy.dsl.extensions.MultiFileConfig
+import org.openmicroscopy.dsl.tasks.FilesGeneratorTask
 import org.openmicroscopy.dsl.tasks.GeneratorBaseTask
 
-import static org.openmicroscopy.dsl.DslPluginBase.findDatabaseType
+import javax.inject.Inject
+
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_DB_TYPE
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_OME_XML
 
@@ -31,74 +32,74 @@ class BlitzPlugin implements Plugin<Project> {
 
     private static final Logger Log = Logging.getLogger(BlitzPlugin)
 
-    static final String TASK_EVALUATE_DSL_INPUTS = "evaluateDslInputs"
-
     static final String TASK_IMPORT_MODEL_RESOURCES = 'importModelResources'
 
     Map<String, BaseFileConfig> fileGeneratorConfigMap = [:]
 
+    final DirectoryProperty sharedOutputDir
+
+    final ObjectFactory objectFactory
+
+    @Inject
+    BlitzPlugin(ObjectFactory objectFactory) {
+        this.objectFactory = objectFactory
+        this.sharedOutputDir = objectFactory.directoryProperty()
+    }
+
     @Override
     void apply(Project project) {
-        ResolvedArtifact artifact = ImportHelper.getOmeroModelWithCustomConfig(project)
-        if (!artifact) {
-            throw new GradleException("omero-model artifact not found")
+        TaskProvider<Sync> importTask = registerImportTask(project)
+
+        project.plugins.withType(JavaPlugin) { JavaPlugin java ->
+            // Register task to import omero data
+            importTask.configure { Sync t ->
+                def artifact = ImportHelper.getOmeroModelFromCompileConfig(project)
+                t.with(createImportModelResSpec(project, artifact.file))
+            }
         }
 
-        // Register import model task. Configure when JavaPlugin is found
-        registerImportTask(project, artifact.file)
+        project.plugins.withType(DslPlugin) {
+            // Get the [ task.name | extension ] map
+            fileGeneratorConfigMap =
+                    project.properties.get("fileGeneratorConfigMap") as Map<String, BaseFileConfig>
 
-        // Apply Dslplugin
-        project.plugins.apply(DslPlugin)
+            DslExtension dsl = project.extensions.getByType(DslExtension)
 
-        // Get the [ task.name | extension ] map
-        fileGeneratorConfigMap =
-                project.properties.get("fileGeneratorConfigMap") as Map<String, BaseFileConfig>
+            // Set the shared output directory
+            sharedOutputDir.set(dsl.outputDir)
 
-        DslExtension dsl = project.extensions.getByType(DslExtension)
+            // Configure extensions of dsl plugin
+            dsl.omeXmlFiles.from importTask
+            dsl.databaseTypes.from importTask
 
-        // Add generateCombinedFilesTask
-        dsl.multiFile.add(createGenerateCombinedFilesConfig(project, dsl))
+            // Add generateCombinedFilesTask
+            dsl.multiFile.add(createGenerateCombinedFilesConfig(project, dsl))
 
-        createEvaluateDslInputsTask(project, dsl)
-        configureForApiPlugin(project, dsl)
-        configureForJavaPlugin(project)
+            // Set each generator task to depend on
+            project.tasks.withType(GeneratorBaseTask).configureEach { task ->
+                task.dependsOn importTask
+            }
+        }
 
-        project.tasks.withType(GeneratorBaseTask).configureEach { task ->
-            task.dependsOn project.tasks.named(TASK_EVALUATE_DSL_INPUTS)
+        project.plugins.withType(ApiPlugin) {
+            TaskProvider<FilesGeneratorTask> generateCombinedTask =
+                    getGenerateCombinedTask(project)
+
+            ApiExtension api = project.extensions.getByType(ApiExtension)
+            api.outputDir.set(sharedOutputDir)
+            api.combinedFiles.from(generateCombinedTask)
+
+            project.tasks.withType(SplitTask).configureEach { task ->
+                task.dependsOn generateCombinedTask
+            }
         }
     }
 
-    TaskProvider<Sync> registerImportTask(Project project, Object from) {
+    TaskProvider<Sync> registerImportTask(Project project) {
         project.tasks.register(TASK_IMPORT_MODEL_RESOURCES, Sync, new Action<Sync>() {
             @Override
-            void execute(Sync sync) {
-                sync.into("$project.buildDir/import")
-                sync.with(createImportModelResSpec(project, from))
-            }
-        })
-    }
-
-    TaskProvider<Task> createEvaluateDslInputsTask(Project project, DslExtension dsl) {
-        final TaskProvider importTask =
-                project.tasks.named(TASK_IMPORT_MODEL_RESOURCES)
-
-        project.tasks.register(TASK_EVALUATE_DSL_INPUTS, new Action<Task>() {
-            @Override
-            void execute(Task task) {
-                task.dependsOn importTask
-                task.doLast {
-                    FileCollection importedFiles = project.files(importTask)
-
-                    fileGeneratorConfigMap.entrySet().each { Map.Entry<String, BaseFileConfig> entry ->
-                        project.tasks.named(entry.key, GeneratorBaseTask).configure(new Action<GeneratorBaseTask>() {
-                            @Override
-                            void execute(GeneratorBaseTask t) {
-                                t.mappingFiles.from(importedFiles)
-                                t.databaseType.set(findDatabaseType(importedFiles, dsl.database.get()))
-                            }
-                        })
-                    }
-                }
+            void execute(Sync s) {
+                s.into("$project.buildDir/import")
             }
         })
     }
@@ -113,45 +114,11 @@ class BlitzPlugin implements Plugin<Project> {
         extension
     }
 
-    void configureForJavaPlugin(Project project) {
-        project.plugins.withType(JavaPlugin) { JavaPlugin java ->
-            // Register task to import omero data
-            project.tasks.named(TASK_IMPORT_MODEL_RESOURCES).configure { Sync t ->
-                ResolvedArtifact artifact = ImportHelper.getOmeroModelFromCompileConfig(project)
-                if (artifact) {
-                    t.with(createImportModelResSpec(project, artifact.file))
-                }
-            }
+    TaskProvider<FilesGeneratorTask> getGenerateCombinedTask(Project project) {
+        def combinedFilesExt = fileGeneratorConfigMap.find {
+            it.key.toLowerCase().contains("combined")
         }
-    }
-
-    void configureForApiPlugin(Project project, DslExtension dsl) {
-        project.plugins.withType(ApiPlugin) { ApiPlugin plugin ->
-            // Set output dir of API to equal DSL
-            ApiExtension api = project.extensions.getByType(ApiExtension) as ApiExtension
-            api.outputDir = dsl.outputDir
-            api.combinedFiles.setFrom(project.fileTree(
-                    dir: "${project.buildDir}/${dsl.database.get()}/combined",
-                    include: "**/*.combined"
-            ))
-
-            /*project.tasks.register("evaluateApiInputs") { Task task ->
-                def combinedFilesExt = fileGeneratorConfigMap.find {
-                    it.key.toLowerCase().contains("combined")
-                }
-                def generateCombined = project.tasks.named(combinedFilesExt.key)
-
-                task.dependsOn
-                task.doLast {
-                    project.tasks.withType(SplitTask).configureEach(new Action<SplitTask>() {
-                        @Override
-                        void execute(SplitTask t) {
-                            t.source = generateCombined
-                        }
-                    })
-                }
-            }*/
-        }
+        project.tasks.named(combinedFilesExt.key, FilesGeneratorTask)
     }
 
     CopySpec createImportModelResSpec(Project project, Object from) {
