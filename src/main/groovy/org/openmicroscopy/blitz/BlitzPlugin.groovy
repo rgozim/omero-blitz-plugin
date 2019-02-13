@@ -5,18 +5,21 @@ import ome.dsl.SemanticType
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.file.CopySpec
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskProvider
 import org.openmicroscopy.api.ApiPlugin
 import org.openmicroscopy.api.extensions.ApiExtension
 import org.openmicroscopy.api.tasks.SplitTask
+import org.openmicroscopy.blitz.extensions.BlitzExtension
 import org.openmicroscopy.dsl.DslPlugin
 import org.openmicroscopy.dsl.extensions.BaseFileConfig
 import org.openmicroscopy.dsl.extensions.DslExtension
@@ -25,7 +28,9 @@ import org.openmicroscopy.dsl.tasks.FilesGeneratorTask
 import org.openmicroscopy.dsl.tasks.GeneratorBaseTask
 
 import javax.inject.Inject
+import java.util.concurrent.Callable
 
+import static org.openmicroscopy.blitz.ConventionPluginHelper.getRuntimeClasspathConfiguration
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_DB_TYPE
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_OME_XML
 
@@ -38,26 +43,36 @@ class BlitzPlugin implements Plugin<Project> {
 
     Map<String, BaseFileConfig> fileGeneratorConfigMap = [:]
 
-    final DirectoryProperty sharedOutputDir
-
     final ObjectFactory objectFactory
 
+    final ProviderFactory providerFactory
+
     @Inject
-    BlitzPlugin(ObjectFactory objectFactory) {
+    BlitzPlugin(ObjectFactory objectFactory, ProviderFactory providerFactory) {
         this.objectFactory = objectFactory
-        this.sharedOutputDir = objectFactory.directoryProperty()
+        this.providerFactory = providerFactory
     }
 
     @Override
     void apply(Project project) {
+        BlitzExtension blitz = project.extensions.create("blitz", BlitzExtension, project)
+
         TaskProvider<Sync> importTask = registerImportTask(project)
 
         project.plugins.withType(JavaPlugin) { JavaPlugin java ->
-            // Register task to import omero data
-            importTask.configure { Sync t ->
-                def artifact = ImportHelper.getOmeroModelFromCompileConfig(project)
-                t.with(createImportModelResSpec(project, artifact.file))
-            }
+            Configuration runtimeClasspath = getRuntimeClasspathConfiguration(project)
+
+            // Configure task to import omero data
+            importTask.configure(new Action<Sync>() {
+                @Override
+                void execute(Sync t) {
+                    t.dependsOn(runtimeClasspath)
+                    def artifact = runtimeClasspath.resolvedConfiguration
+                            .resolvedArtifacts
+                            .find { it.name.contains("omero-model") }
+                    t.with(createImportModelResSpec(project, artifact.file))
+                }
+            })
         }
 
         project.plugins.withType(DslPlugin) {
@@ -67,15 +82,14 @@ class BlitzPlugin implements Plugin<Project> {
 
             DslExtension dsl = project.extensions.getByType(DslExtension)
 
-            // Set the shared output directory
-            sharedOutputDir.set(dsl.outputDir)
-
             // Configure extensions of dsl plugin
-            dsl.omeXmlFiles.from importTask
-            dsl.databaseTypes.from importTask
+            dsl.outputDir.set(blitz.outputDir)
+            dsl.omeXmlFiles.from(importTask)
+            dsl.databaseTypes.from(importTask)
 
             // Add generateCombinedFilesTask
-            dsl.multiFile.add(createGenerateCombinedFilesConfig(project, dsl))
+            // registerGenerateCombinedTask(project, dsl)
+            dsl.multiFile.add(createGenerateCombinedFilesConfig(project, blitz).get())
 
             // Set each generator task to depend on
             project.tasks.withType(GeneratorBaseTask).configureEach(new Action<GeneratorBaseTask>() {
@@ -91,7 +105,7 @@ class BlitzPlugin implements Plugin<Project> {
                     getGenerateCombinedTask(project)
 
             ApiExtension api = project.extensions.getByType(ApiExtension)
-            api.outputDir.set(sharedOutputDir)
+            api.outputDir.set(blitz.outputDir)
             api.combinedFiles.from(generateCombinedTask)
 
             project.tasks.withType(SplitTask).configureEach(new Action<SplitTask>() {
@@ -112,15 +126,24 @@ class BlitzPlugin implements Plugin<Project> {
         })
     }
 
-    MultiFileConfig createGenerateCombinedFilesConfig(Project project, DslExtension dsl) {
-        def extension = new MultiFileConfig("combined", project)
-        extension.with {
-            template = "combined.vm"
-            outputDir = project.file("${project.buildDir}/${dsl.database.get()}/combined")
-            formatOutput = { SemanticType st -> "${st.getShortname()}I.combined" }
-        }
-        extension
+
+
+    Provider<MultiFileConfig> createGenerateCombinedFilesConfig(Project project, BlitzExtension blitz) {
+        providerFactory.provider(new Callable<MultiFileConfig>() {
+            @Override
+            MultiFileConfig call() throws Exception {
+                def extension = new MultiFileConfig("combined", project)
+                extension.template = "combined.vm"
+                extension.outputDir = "${project.buildDir}/${blitz.database}/combined"
+                extension.formatOutput = { SemanticType st -> "${st.getShortname()}I.combined" }
+                return extension
+            }
+        })
     }
+
+//    TaskProvider<FilesGeneratorTask> getGenerateCombinedTask(Project project, String database) {
+//        project.tasks.named("generateCombined" + database.capitalize(), FilesGeneratorTask)
+//    }
 
     TaskProvider<FilesGeneratorTask> getGenerateCombinedTask(Project project) {
         def combinedFilesExt = fileGeneratorConfigMap.find {
@@ -159,5 +182,44 @@ class BlitzPlugin implements Plugin<Project> {
             }
         })
     }
+
+//    TaskProvider<FilesGeneratorTask> registerGenerateCombinedTask(Project project, DslExtension dsl) {
+//        String taskName = "generateCombined" + dsl.database.get().capitalize()
+//        project.tasks.register(taskName, FilesGeneratorTask, new Action<FilesGeneratorTask>() {
+//            @Override
+//            void execute(FilesGeneratorTask t) {
+//                t.with {
+//                    dependsOn
+//                    velocityConfig.set(dsl.velocity.data)
+//                    outputDir.set(project.layout.buildDirectory.dir("combined"))
+//                    template.set(findTemplateProvider(dsl.templates, new File("combined.vm")))
+//                    databaseType.set(findDatabaseTypeProvider(dsl.databaseTypes, dsl.database))
+//                    mappingFiles.from(dsl.omeXmlFiles)
+//                }
+//            }
+//        })
+//    }
+//
+//    Provider<RegularFile> findDatabaseTypeProvider(FileCollection collection, Property<String> type) {
+//        providerFactory.provider(new Callable<RegularFile>() {
+//            @Override
+//            RegularFile call() throws Exception {
+//                RegularFileProperty result = objectFactory.fileProperty()
+//                result.set(DslBase.findDatabaseType(collection, type.get()))
+//                result.get()
+//            }
+//        })
+//    }
+//
+//    Provider<RegularFile> findTemplateProvider(FileCollection collection, File file) {
+//        providerFactory.provider(new Callable<RegularFile>() {
+//            @Override
+//            RegularFile call() throws Exception {
+//                RegularFileProperty result = objectFactory.fileProperty()
+//                result.set(DslBase.findTemplate(collection, file))
+//                result.get()
+//            }
+//        })
+//    }
 
 }
