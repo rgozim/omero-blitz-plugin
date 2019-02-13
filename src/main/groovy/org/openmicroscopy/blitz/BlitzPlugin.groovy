@@ -1,5 +1,6 @@
 package org.openmicroscopy.blitz
 
+import groovy.transform.CompileStatic
 import ome.dsl.SemanticType
 import org.gradle.api.Action
 import org.gradle.api.Plugin
@@ -28,6 +29,7 @@ import javax.inject.Inject
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_DB_TYPE
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_OME_XML
 
+@CompileStatic
 class BlitzPlugin implements Plugin<Project> {
 
     private static final Logger Log = Logging.getLogger(BlitzPlugin)
@@ -76,9 +78,12 @@ class BlitzPlugin implements Plugin<Project> {
             dsl.multiFile.add(createGenerateCombinedFilesConfig(project, dsl))
 
             // Set each generator task to depend on
-            project.tasks.withType(GeneratorBaseTask).configureEach { task ->
-                task.dependsOn importTask
-            }
+            project.tasks.withType(GeneratorBaseTask).configureEach(new Action<GeneratorBaseTask>() {
+                @Override
+                void execute(GeneratorBaseTask gbt) {
+                    gbt.dependsOn importTask
+                }
+            })
         }
 
         project.plugins.withType(ApiPlugin) {
@@ -89,9 +94,12 @@ class BlitzPlugin implements Plugin<Project> {
             api.outputDir.set(sharedOutputDir)
             api.combinedFiles.from(generateCombinedTask)
 
-            project.tasks.withType(SplitTask).configureEach { task ->
-                task.dependsOn generateCombinedTask
-            }
+            project.tasks.withType(SplitTask).configureEach(new Action<SplitTask>() {
+                @Override
+                void execute(SplitTask st) {
+                    st.dependsOn generateCombinedTask
+                }
+            })
         }
     }
 
