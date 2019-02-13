@@ -7,7 +7,7 @@ From a high level, blitz-plugin consists of the following tasks/stages:
 
 1. Import `.ome.xml` map files from `org.openmicroscopy:omero-model` (`omero-model.jar`) resources
 2. Import `-types.properties` files from `org.openmicroscopy:omero-model` (`omero-model.jar`) resources
-3. Using the [`omero-dsl-plugin`](https://gitlab.com/openmicroscopy/incubator/omero-dsl), generate `xx.combined` files
+3. Using the [`omero-ome.dsl-plugin`](https://gitlab.com/openmicroscopy/incubator/omero-ome.dsl), generate `xx.combined` files
 4. Process and split `xx.combined` files into chosen languages
 
 ### Usage

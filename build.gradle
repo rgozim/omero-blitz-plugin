@@ -1,34 +1,30 @@
 plugins {
-    id 'groovy'
-    id 'maven-publish'
-    id 'java-gradle-plugin'
+    id "groovy"
+    id "org.openmicroscopy.plugin-project" version "5.5.0-SNAPSHOT"
 }
 
-group 'org.openmicroscopy'
-version '5.5.0-SNAPSHOT'
+group = "org.openmicroscopy"
+version = "5.5.0-SNAPSHOT"
 
 gradlePlugin {
     plugins {
         BlitzPlugin {
-            id = 'org.openmicroscopy.blitz'
-            implementationClass = 'org.openmicroscopy.blitz.BlitzPlugin'
+            id = "org.openmicroscopy.blitz"
+            implementationClass = "org.openmicroscopy.blitz.BlitzPlugin"
         }
     }
 }
 
 repositories {
-    mavenCentral()
+    jcenter()
     mavenLocal()
-    gradlePluginPortal()
 }
 
 dependencies {
     testImplementation "junit:junit:4.12"
     testImplementation "org.spockframework:spock-core:1.2-groovy-2.5"
 
-    implementation 'org.openmicroscopy:dslplugin:5.5.0-SNAPSHOT'
-    implementation 'org.openmicroscopy:apiplugin:5.5.0-SNAPSHOT'
-    implementation 'commons-io:commons-io:2.6'
+    implementation "org.openmicroscopy:omero-dsl-plugin:5.5.0-SNAPSHOT"
+    implementation "org.openmicroscopy:omero-api-plugin:5.5.0-SNAPSHOT"
+    implementation "commons-io:commons-io:2.6"
 }
-
-apply from: "publish.gradle"
