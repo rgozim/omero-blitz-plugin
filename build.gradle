@@ -6,13 +6,9 @@ plugins {
 group = "org.openmicroscopy"
 version = "5.5.0-SNAPSHOT"
 
-gradlePlugin {
-    plugins {
-        BlitzPlugin {
-            id = "org.openmicroscopy.blitz"
-            implementationClass = "org.openmicroscopy.blitz.BlitzPlugin"
-        }
-    }
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 repositories {
@@ -31,4 +27,13 @@ dependencies {
     implementation "org.openmicroscopy:omero-dsl-plugin:5.5.0-m4"
     implementation "org.openmicroscopy:omero-api-plugin:5.5.0-m4"
     implementation "commons-io:commons-io:2.6"
+}
+
+gradlePlugin {
+    plugins {
+        BlitzPlugin {
+            id = "org.openmicroscopy.blitz"
+            implementationClass = "org.openmicroscopy.blitz.BlitzPlugin"
+        }
+    }
 }

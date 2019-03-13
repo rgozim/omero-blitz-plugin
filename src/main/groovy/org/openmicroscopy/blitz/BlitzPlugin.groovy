@@ -50,6 +50,8 @@ import org.openmicroscopy.dsl.tasks.GeneratorBaseTask
 import javax.inject.Inject
 import java.util.concurrent.Callable
 
+import static org.openmicroscopy.blitz.ImportHelper.findOmeroModel
+import static org.openmicroscopy.blitz.ImportHelper.getConfigurationForOmeroModel
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_DB_TYPE
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_OME_XML
 
@@ -83,13 +85,11 @@ class BlitzPlugin implements Plugin<Project> {
             importTask.configure(new Action<Sync>() {
                 @Override
                 void execute(Sync t) {
-                    Configuration config = ImportHelper.getDataFilesConfig(project)
-                    def artifact = config.resolvedConfiguration
-                            .resolvedArtifacts
-                            .find { it.name.contains("omero-model") }
+                    Configuration config = getConfigurationForOmeroModel(project)
+                    File artifact = findOmeroModel(config)
 
                     t.dependsOn(config)
-                    t.with(createImportModelResSpec(project, artifact.file))
+                    t.with(createImportModelResSpec(project, artifact))
                 }
             })
         }

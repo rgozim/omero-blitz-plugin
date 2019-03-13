@@ -25,35 +25,25 @@ import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.DependencySet
-import org.gradle.api.artifacts.ResolvedArtifact
+import org.gradle.api.plugins.JavaPlugin
 
-import static org.openmicroscopy.blitz.ConventionPluginHelper.getRuntimeClasspathConfiguration
+import static org.openmicroscopy.blitz.ConventionPluginHelper.getCompileClasspathConfiguration
 
 @CompileStatic
 class ImportHelper {
 
-    static final String CONFIGURATION_NAME = "dataFiles"
+    public static final String CONFIGURATION_NAME = "dataFiles"
 
-    static ResolvedArtifact getOmeroModelArtifact(Project project) {
-        ResolvedArtifact artifact = getOmeroModelFromCompileConfig(project)
-        return artifact ?: getOmeroModelWithCustomConfig(project)
+    static File findOmeroModel(Configuration config) {
+        return config.incoming.artifacts.artifactFiles.files.find {
+            it.name.contains("omero-model")
+        }
     }
 
-    static ResolvedArtifact getOmeroModelFromCompileConfig(Project project) {
-        Configuration runtimeClasspath = getRuntimeClasspathConfiguration(project)
-        if (!runtimeClasspath) {
-            return null
-        }
-        runtimeClasspath.resolvedConfiguration.resolvedArtifacts.find { it.name.contains("omero-model") }
-    }
-
-    static ResolvedArtifact getOmeroModelWithCustomConfig(Project project) {
-        Configuration config = project.configurations.findByName(CONFIGURATION_NAME)
-        if (!config) {
-            config = createDataFilesConfig(project)
-        }
-
-        config.resolvedConfiguration.resolvedArtifacts.find { it.name.contains("omero-model") }
+    static Configuration getConfigurationForOmeroModel(Project project) {
+        return project.plugins.hasPlugin(JavaPlugin) ?
+                getCompileClasspathConfiguration(project) :
+                getDataFilesConfig(project)
     }
 
     static Configuration getDataFilesConfig(Project project) {
@@ -71,14 +61,14 @@ class ImportHelper {
                 project.repositories.jcenter()
         )
 
-        final Configuration config = project.getConfigurations().create(ImportHelper.CONFIGURATION_NAME)
+        Configuration config = project.configurations.create(CONFIGURATION_NAME)
                 .setVisible(false)
                 .setTransitive(false)
                 .setDescription("The data artifacts to be processed for this plugin.")
 
         config.defaultDependencies(new Action<DependencySet>() {
             void execute(DependencySet dependencies) {
-                dependencies.add(project.getDependencies().create("org.openmicroscopy:omero-model:5.5.0-m4"))
+                dependencies.add(project.dependencies.create("org.openmicroscopy:omero-model:5.5.+"))
             }
         })
 
