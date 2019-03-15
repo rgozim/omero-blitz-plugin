@@ -31,7 +31,6 @@ import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.model.ObjectFactory
-import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Sync
@@ -50,8 +49,6 @@ import org.openmicroscopy.dsl.tasks.GeneratorBaseTask
 import javax.inject.Inject
 import java.util.concurrent.Callable
 
-import static org.openmicroscopy.blitz.ImportHelper.findOmeroModel
-import static org.openmicroscopy.blitz.ImportHelper.getConfigurationForOmeroModel
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_DB_TYPE
 import static org.openmicroscopy.dsl.FileTypes.PATTERN_OME_XML
 
@@ -76,23 +73,18 @@ class BlitzPlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
-        final BlitzExtension blitz = project.extensions.create("blitz", BlitzExtension, project)
+        BlitzExtension blitz =
+                project.extensions.create("blitz", BlitzExtension, project)
 
-        final TaskProvider<Sync> importTask = registerImportTask(project)
-
-        project.plugins.withType(JavaPlugin) {
-            // Configure task to import omero data
-            importTask.configure(new Action<Sync>() {
-                @Override
-                void execute(Sync t) {
-                    Configuration config = getConfigurationForOmeroModel(project)
-                    File artifact = findOmeroModel(config)
-
-                    t.dependsOn(config)
-                    t.with(createImportModelResSpec(project, artifact))
-                }
-            })
-        }
+        TaskProvider<Sync> importTask = registerImportTask(project)
+        Configuration config = ImportHelper.getConfigurationForOmeroModel(project)
+        importTask.configure(new Action<Sync>() {
+            @Override
+            void execute(Sync t) {
+                t.dependsOn(config)
+                t.with(createImportModelResSpec(project, ImportHelper.findOmeroModel(config)))
+            }
+        })
 
         project.plugins.withType(DslPlugin) {
             // Get the [ task.name | extension ] map

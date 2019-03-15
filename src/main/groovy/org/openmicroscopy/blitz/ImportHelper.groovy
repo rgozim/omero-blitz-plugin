@@ -22,9 +22,12 @@ package org.openmicroscopy.blitz
 
 import groovy.transform.CompileStatic
 import org.gradle.api.Action
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.DependencySet
+import org.gradle.api.artifacts.ResolvableDependencies
+import org.gradle.api.plugins.ApplicationPlugin
 import org.gradle.api.plugins.JavaPlugin
 
 import static org.openmicroscopy.blitz.ConventionPluginHelper.getCompileClasspathConfiguration
@@ -34,16 +37,25 @@ class ImportHelper {
 
     public static final String CONFIGURATION_NAME = "dataFiles"
 
+    static interface Callback {
+        void result(Configuration configuration)
+    }
+
     static File findOmeroModel(Configuration config) {
-        return config.incoming.artifacts.artifactFiles.files.find {
+        config.incoming.artifacts.artifactFiles.files.find {
+            it.name.contains("omero-model")
+        }
+    }
+
+    static File findOmeroModel(ResolvableDependencies dependencies) {
+        dependencies.artifacts.artifactFiles.files.find {
             it.name.contains("omero-model")
         }
     }
 
     static Configuration getConfigurationForOmeroModel(Project project) {
-        return project.plugins.hasPlugin(JavaPlugin) ?
-                getCompileClasspathConfiguration(project) :
-                getDataFilesConfig(project)
+        def javaPlugin = project.plugins.withType(JavaPlugin)
+        javaPlugin ? getCompileClasspathConfiguration(project) : getDataFilesConfig(project)
     }
 
     static Configuration getDataFilesConfig(Project project) {
@@ -68,7 +80,7 @@ class ImportHelper {
 
         config.defaultDependencies(new Action<DependencySet>() {
             void execute(DependencySet dependencies) {
-                dependencies.add(project.dependencies.create("org.openmicroscopy:omero-model:5.5.+"))
+                dependencies.add(project.dependencies.create("org.openmicroscopy:omero-model:latest"))
             }
         })
 
