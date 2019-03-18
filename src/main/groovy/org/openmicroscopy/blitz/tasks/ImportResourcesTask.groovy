@@ -57,6 +57,7 @@ class ImportResourcesTask extends DefaultTask {
     @TaskAction
     void apply() {
         ResolvedArtifact artifact = config.resolvedConfiguration.resolvedArtifacts.find {
+            Log.info("Resolved: ${it.file.toString()}")
             it.name.contains("omero-model")
         }
         if (!artifact) {
