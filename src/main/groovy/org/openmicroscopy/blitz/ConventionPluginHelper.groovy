@@ -26,6 +26,10 @@ import org.gradle.api.plugins.JavaPlugin
 
 class ConventionPluginHelper {
 
+    static Configuration getApiConfiguration(Project project) {
+        project.configurations.findByName(JavaPlugin.API_CONFIGURATION_NAME)
+    }
+
     static Configuration getCompileClasspathConfiguration(Project project) {
         project.configurations.findByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME)
     }

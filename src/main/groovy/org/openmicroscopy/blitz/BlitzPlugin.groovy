@@ -26,11 +26,15 @@ import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.ResolvableDependencies
+import org.gradle.api.distribution.plugins.DistributionPlugin
 import org.gradle.api.file.CopySpec
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.plugins.ApplicationPlugin
+import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Sync
@@ -77,14 +81,23 @@ class BlitzPlugin implements Plugin<Project> {
                 project.extensions.create("blitz", BlitzExtension, project)
 
         TaskProvider<Sync> importTask = registerImportTask(project)
-        Configuration config = ImportHelper.getConfigurationForOmeroModel(project)
-        importTask.configure(new Action<Sync>() {
-            @Override
-            void execute(Sync t) {
-                t.dependsOn(config)
-                t.with(createImportModelResSpec(project, ImportHelper.findOmeroModel(config)))
-            }
-        })
+
+        project.plugins.withType(JavaPlugin) {
+            Configuration config = ImportHelper.getConfigurationForOmeroModel(project)
+            importTask.configure(new Action<Sync>() {
+                @Override
+                void execute(Sync t) {
+                    t.dependsOn(config)
+                    // t.with(createImportModelResSpec(project, file))
+                    config.incoming.afterResolve(new Action<ResolvableDependencies>() {
+                        @Override
+                        void execute(ResolvableDependencies resolvableDependencies) {
+                            t.with(createImportModelResSpec(project, ImportHelper.findOmeroModel(resolvableDependencies)))
+                        }
+                    })
+                }
+            })
+        }
 
         project.plugins.withType(DslPlugin) {
             // Get the [ task.name | extension ] map

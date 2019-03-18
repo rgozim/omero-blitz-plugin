@@ -27,35 +27,37 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.artifacts.ResolvableDependencies
-import org.gradle.api.plugins.ApplicationPlugin
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.JavaPlugin
 
-import static org.openmicroscopy.blitz.ConventionPluginHelper.getCompileClasspathConfiguration
+import static org.openmicroscopy.blitz.ConventionPluginHelper.*
 
 @CompileStatic
 class ImportHelper {
 
     public static final String CONFIGURATION_NAME = "dataFiles"
 
-    static interface Callback {
-        void result(Configuration configuration)
-    }
+    private static final Logger Log = Logging.getLogger(ImportHelper)
 
     static File findOmeroModel(Configuration config) {
-        config.incoming.artifacts.artifactFiles.files.find {
-            it.name.contains("omero-model")
-        }
+        return findOmeroModel(config.incoming)
     }
 
     static File findOmeroModel(ResolvableDependencies dependencies) {
-        dependencies.artifacts.artifactFiles.files.find {
+        File file = dependencies.artifacts.artifactFiles.files.find {
             it.name.contains("omero-model")
         }
+        if (file == null) {
+            throw new GradleException("Unable to find omero-model artifact")
+        }
+        Log.info("Found omero-model: ${file.toString()}")
+        return file
     }
 
     static Configuration getConfigurationForOmeroModel(Project project) {
         def javaPlugin = project.plugins.withType(JavaPlugin)
-        javaPlugin ? getCompileClasspathConfiguration(project) : getDataFilesConfig(project)
+        javaPlugin ? getRuntimeClasspathConfiguration(project) : getDataFilesConfig(project)
     }
 
     static Configuration getDataFilesConfig(Project project) {
