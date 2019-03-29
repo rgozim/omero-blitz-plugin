@@ -25,19 +25,11 @@ import ome.dsl.SemanticType
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.ResolvableDependencies
-import org.gradle.api.distribution.plugins.DistributionPlugin
-import org.gradle.api.file.CopySpec
-import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.model.ObjectFactory
-import org.gradle.api.plugins.ApplicationPlugin
-import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
-import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskProvider
 import org.openmicroscopy.api.ApiPlugin
 import org.openmicroscopy.api.extensions.ApiExtension
@@ -62,7 +54,9 @@ class BlitzPlugin implements Plugin<Project> {
 
     private static final Logger Log = Logging.getLogger(BlitzPlugin)
 
-    static final String TASK_IMPORT_MODEL_RESOURCES = 'importModelResources'
+    public static final String TASK_IMPORT_MAPPINGS = "importMappings"
+
+    public static final String TASK_IMPORT_DATABASE_TYPES = "importDatabaseTypes"
 
     Map<String, BaseFileConfig> fileGeneratorConfigMap = [:]
 
@@ -150,39 +144,8 @@ class BlitzPlugin implements Plugin<Project> {
         project.tasks.named(combinedFilesExt.key, FilesGeneratorTask)
     }
 
-    CopySpec createImportModelResSpec(Project project, Object from) {
-        project.copySpec(new Action<CopySpec>() {
-            @Override
-            void execute(CopySpec copySpec) {
-                copySpec.with {
-                    includeEmptyDirs = false
-                    into("mappings", new Action<CopySpec>() {
-                        @Override
-                        void execute(CopySpec spec) {
-                            spec.from(project.zipTree(from))
-                            spec.include(PATTERN_OME_XML)
-                            spec.eachFile { FileCopyDetails copyDetails ->
-                                copyDetails.path = "mappings/$copyDetails.name"
-                            }
-                        }
-                    })
-                    into("databaseTypes", new Action<CopySpec>() {
-                        @Override
-                        void execute(CopySpec spec) {
-                            spec.from(project.zipTree(from))
-                            spec.include(PATTERN_DB_TYPE)
-                            spec.eachFile { FileCopyDetails copyDetails ->
-                                copyDetails.path = "databaseTypes/$copyDetails.name"
-                            }
-                        }
-                    })
-                }
-            }
-        })
-    }
-
     TaskProvider<ImportResourcesTask> registerImportMappings() {
-        project.tasks.register("importMappings", ImportResourcesTask, new Action<ImportResourcesTask>() {
+        project.tasks.register(TASK_IMPORT_MAPPINGS, ImportResourcesTask, new Action<ImportResourcesTask>() {
             @Override
             void execute(ImportResourcesTask t) {
                 t.with {
@@ -195,7 +158,7 @@ class BlitzPlugin implements Plugin<Project> {
     }
 
     TaskProvider<ImportResourcesTask> registerImportDbTypes() {
-        project.tasks.register("importDatabaseTypes", ImportResourcesTask, new Action<ImportResourcesTask>() {
+        project.tasks.register(TASK_IMPORT_DATABASE_TYPES, ImportResourcesTask, new Action<ImportResourcesTask>() {
             @Override
             void execute(ImportResourcesTask t) {
                 t.with {
@@ -206,53 +169,5 @@ class BlitzPlugin implements Plugin<Project> {
             }
         })
     }
-
-//    TaskProvider<Sync> registerImportTask() {
-//        project.tasks.register(TASK_IMPORT_MODEL_RESOURCES, Sync, new Action<Sync>() {
-//            @Override
-//            void execute(Sync s) {
-//                s.into("$project.buildDir/import")
-//            }
-//        })
-//    }
-//
-//    TaskProvider<FilesGeneratorTask> registerGenerateCombinedTask(Project project, DslExtension ome.dsl) {
-//        String taskName = "generateCombined" + ome.dsl.database.get().capitalize()
-//        project.tasks.register(taskName, FilesGeneratorTask, new Action<FilesGeneratorTask>() {
-//            @Override
-//            void execute(FilesGeneratorTask t) {
-//                t.with {
-//                    dependsOn
-//                    velocityConfig.set(ome.dsl.velocity.data)
-//                    outputDir.set(project.layout.buildDirectory.dir("combined"))
-//                    template.set(findTemplateProvider(ome.dsl.templates, new File("combined.vm")))
-//                    databaseType.set(findDatabaseTypeProvider(ome.dsl.databaseTypes, ome.dsl.database))
-//                    mappingFiles.from(ome.dsl.omeXmlFiles)
-//                }
-//            }
-//        })
-//    }
-//
-//    Provider<RegularFile> findDatabaseTypeProvider(FileCollection collection, Property<String> type) {
-//        providerFactory.provider(new Callable<RegularFile>() {
-//            @Override
-//            RegularFile call() throws Exception {
-//                RegularFileProperty result = objectFactory.fileProperty()
-//                result.set(DslBase.findDatabaseType(collection, type.get()))
-//                result.get()
-//            }
-//        })
-//    }
-//
-//    Provider<RegularFile> findTemplateProvider(FileCollection collection, File file) {
-//        providerFactory.provider(new Callable<RegularFile>() {
-//            @Override
-//            RegularFile call() throws Exception {
-//                RegularFileProperty result = objectFactory.fileProperty()
-//                result.set(DslBase.findTemplate(collection, file))
-//                result.get()
-//            }
-//        })
-//    }
 
 }
