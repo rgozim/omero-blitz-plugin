@@ -31,7 +31,7 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.JavaPlugin
 
-import static org.openmicroscopy.blitz.ConventionPluginHelper.*
+import static org.openmicroscopy.blitz.ConventionPluginHelper.getRuntimeClasspathConfiguration
 
 @CompileStatic
 class ImportHelper {
